@@ -1134,7 +1134,7 @@ U 1 1 5D01425D
 P 3200 4600
 F 0 "C2" V 3100 4600 50  0000 C CNN
 F 1 "100n" V 3100 4450 50  0000 C CNN
-F 2 "" H 3200 4600 50  0001 C CNN
+F 2 "Capacitors_SMD:C_0805_HandSoldering" H 3200 4600 50  0001 C CNN
 F 3 "~" H 3200 4600 50  0001 C CNN
 	1    3200 4600
 	0    1    1    0   
@@ -1162,12 +1162,12 @@ $EndComp
 $Comp
 L Connector:Conn_01x03_Female J1
 U 1 1 5D02EB6D
-P 1550 5350
-F 0 "J1" H 1442 5635 50  0000 C CNN
-F 1 "serial_in" H 1442 5544 50  0000 C CNN
-F 2 "" H 1550 5350 50  0001 C CNN
-F 3 "~" H 1550 5350 50  0001 C CNN
-	1    1550 5350
+P 1300 5350
+F 0 "J1" H 1192 5635 50  0000 C CNN
+F 1 "serial_in" H 1192 5544 50  0000 C CNN
+F 2 "Pin_Headers:Pin_Header_Straight_1x03_Pitch2.54mm" H 1300 5350 50  0001 C CNN
+F 3 "~" H 1300 5350 50  0001 C CNN
+	1    1300 5350
 	-1   0    0    -1  
 $EndComp
 Wire Wire Line
@@ -1178,7 +1178,7 @@ U 1 1 5D0538C6
 P 5100 5350
 F 0 "J2" H 5072 5374 50  0000 R CNN
 F 1 "serial_out" H 5072 5283 50  0000 R CNN
-F 2 "" H 5100 5350 50  0001 C CNN
+F 2 "Pin_Headers:Pin_Header_Straight_1x03_Pitch2.54mm" H 5100 5350 50  0001 C CNN
 F 3 "~" H 5100 5350 50  0001 C CNN
 	1    5100 5350
 	-1   0    0    -1  
@@ -1211,14 +1211,14 @@ U 1 1 5D0C690D
 P 2700 5600
 F 0 "C1" H 2550 5600 50  0000 C CNN
 F 1 "100n" H 2900 5600 50  0000 C CNN
-F 2 "" H 2700 5600 50  0001 C CNN
+F 2 "Capacitors_SMD:C_0805_HandSoldering" H 2700 5600 50  0001 C CNN
 F 3 "~" H 2700 5600 50  0001 C CNN
 	1    2700 5600
 	-1   0    0    1   
 $EndComp
-Text GLabel 1750 5350 2    50   Input ~ 0
+Text GLabel 1950 5350 2    50   Input ~ 0
 clock
-Text GLabel 1750 5450 2    50   Input ~ 0
+Text GLabel 1950 5450 2    50   Input ~ 0
 latch
 Text GLabel 4900 5350 0    50   Input ~ 0
 clock
@@ -1248,9 +1248,9 @@ Text GLabel 3000 4900 0    50   Input ~ 0
 data_in
 Text GLabel 3000 5100 0    50   Input ~ 0
 clock
-Text GLabel 1750 5250 2    50   Input ~ 0
+Text GLabel 1950 5250 2    50   Input ~ 0
 data_in
-Text GLabel 3800 5800 2    50   Input ~ 0
+Text GLabel 4000 5800 2    50   Input ~ 0
 data_out
 Text GLabel 4900 5250 0    50   Input ~ 0
 data_out
@@ -1260,7 +1260,7 @@ U 1 1 5D119188
 P 1200 2650
 F 0 "D9" V 1239 2533 50  0000 R CNN
 F 1 "ARDUINO" V 1148 2533 50  0000 R CNN
-F 2 "" H 1200 2650 50  0001 C CNN
+F 2 "LEDs:LED_0805_HandSoldering" H 1200 2650 50  0001 C CNN
 F 3 "~" H 1200 2650 50  0001 C CNN
 	1    1200 2650
 	0    -1   -1   0   
@@ -1282,7 +1282,7 @@ U 1 1 5D11BBC0
 P 1200 2950
 F 0 "R9" H 1270 2996 50  0000 L CNN
 F 1 "10k" H 1270 2905 50  0000 L CNN
-F 2 "" V 1130 2950 50  0001 C CNN
+F 2 "Resistors_SMD:R_0805_HandSoldering" V 1130 2950 50  0001 C CNN
 F 3 "~" H 1200 2950 50  0001 C CNN
 	1    1200 2950
 	1    0    0    -1  
@@ -1310,7 +1310,7 @@ U 1 1 5D11FB44
 P 1150 3950
 F 0 "J3" H 1258 4131 50  0000 C CNN
 F 1 "arduino_5V" H 1258 4040 50  0000 C CNN
-F 2 "" H 1150 3950 50  0001 C CNN
+F 2 "Pin_Headers:Pin_Header_Straight_1x02_Pitch2.54mm" H 1150 3950 50  0001 C CNN
 F 3 "~" H 1150 3950 50  0001 C CNN
 	1    1150 3950
 	1    0    0    -1  
@@ -1342,8 +1342,8 @@ L Connector:Conn_01x02_Male J4
 U 1 1 5D1242D0
 P 1150 4400
 F 0 "J4" H 1258 4581 50  0000 C CNN
-F 1 "coil_power" H 1258 4490 50  0000 C CNN
-F 2 "" H 1150 4400 50  0001 C CNN
+F 1 "coil_power_in" H 1258 4490 50  0000 C CNN
+F 2 "Connectors_Terminal_Blocks:TerminalBlock_bornier-2_P5.08mm" H 1150 4400 50  0001 C CNN
 F 3 "~" H 1150 4400 50  0001 C CNN
 	1    1150 4400
 	1    0    0    -1  
@@ -1367,7 +1367,7 @@ U 1 1 5D126268
 P 1950 2650
 F 0 "D10" V 1989 2532 50  0000 R CNN
 F 1 "COIL" V 1898 2532 50  0000 R CNN
-F 2 "" H 1950 2650 50  0001 C CNN
+F 2 "LEDs:LED_0805_HandSoldering" H 1950 2650 50  0001 C CNN
 F 3 "~" H 1950 2650 50  0001 C CNN
 	1    1950 2650
 	0    -1   -1   0   
@@ -1378,7 +1378,7 @@ U 1 1 5D12627C
 P 1950 2950
 F 0 "R10" H 2020 2996 50  0000 L CNN
 F 1 "10k" H 2020 2905 50  0000 L CNN
-F 2 "" V 1880 2950 50  0001 C CNN
+F 2 "Resistors_SMD:R_0805_HandSoldering" V 1880 2950 50  0001 C CNN
 F 3 "~" H 1950 2950 50  0001 C CNN
 	1    1950 2950
 	1    0    0    -1  
@@ -1404,4 +1404,133 @@ Wire Notes Line
 	11100 3850 3100 3850
 Wire Notes Line
 	3100 3850 3100 600 
+$Comp
+L Connector:Conn_01x02_Male J6
+U 1 1 5D1830F7
+P 1900 3950
+F 0 "J6" H 2008 4131 50  0000 C CNN
+F 1 "5V_out" H 2008 4040 50  0000 C CNN
+F 2 "Pin_Headers:Pin_Header_Straight_1x02_Pitch2.54mm" H 1900 3950 50  0001 C CNN
+F 3 "~" H 1900 3950 50  0001 C CNN
+	1    1900 3950
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:+5V #PWR040
+U 1 1 5D1830FD
+P 2100 3950
+F 0 "#PWR040" H 2100 3800 50  0001 C CNN
+F 1 "+5V" V 2115 4078 50  0000 L CNN
+F 2 "" H 2100 3950 50  0001 C CNN
+F 3 "" H 2100 3950 50  0001 C CNN
+	1    2100 3950
+	0    1    1    0   
+$EndComp
+$Comp
+L power:GND #PWR041
+U 1 1 5D183103
+P 2100 4050
+F 0 "#PWR041" H 2100 3800 50  0001 C CNN
+F 1 "GND" V 2105 3922 50  0000 R CNN
+F 2 "" H 2100 4050 50  0001 C CNN
+F 3 "" H 2100 4050 50  0001 C CNN
+	1    2100 4050
+	0    -1   -1   0   
+$EndComp
+$Comp
+L Connector:Conn_01x02_Male J5
+U 1 1 5D189A4E
+P 1850 4350
+F 0 "J5" H 1958 4531 50  0000 C CNN
+F 1 "coil_power_out" H 1958 4440 50  0000 C CNN
+F 2 "Connectors_Terminal_Blocks:TerminalBlock_bornier-2_P5.08mm" H 1850 4350 50  0001 C CNN
+F 3 "~" H 1850 4350 50  0001 C CNN
+	1    1850 4350
+	1    0    0    -1  
+$EndComp
+Text GLabel 2050 4350 2    50   Input ~ 0
+V_coil
+$Comp
+L power:GND #PWR039
+U 1 1 5D189A55
+P 2050 4450
+F 0 "#PWR039" H 2050 4200 50  0001 C CNN
+F 1 "GND" V 2055 4322 50  0000 R CNN
+F 2 "" H 2050 4450 50  0001 C CNN
+F 3 "" H 2050 4450 50  0001 C CNN
+	1    2050 4450
+	0    -1   -1   0   
+$EndComp
+$Comp
+L Connector:TestPoint TP1
+U 1 1 5D190C6D
+P 1550 5600
+F 0 "TP1" H 1600 5850 50  0000 R CNN
+F 1 "data_in" V 1550 6200 50  0000 R CNN
+F 2 "Measurement_Points:Test_Point_Keystone_5019_Minature" H 1750 5600 50  0001 C CNN
+F 3 "~" H 1750 5600 50  0001 C CNN
+	1    1550 5600
+	-1   0    0    1   
+$EndComp
+$Comp
+L Connector:TestPoint TP2
+U 1 1 5D19BF09
+P 1700 5600
+F 0 "TP2" H 1750 5850 50  0000 R CNN
+F 1 "clock" V 1700 6100 50  0000 R CNN
+F 2 "Measurement_Points:Test_Point_Keystone_5019_Minature" H 1900 5600 50  0001 C CNN
+F 3 "~" H 1900 5600 50  0001 C CNN
+	1    1700 5600
+	-1   0    0    1   
+$EndComp
+$Comp
+L Connector:TestPoint TP3
+U 1 1 5D1A1C01
+P 1850 5600
+F 0 "TP3" H 1900 5850 50  0000 R CNN
+F 1 "latch" V 1850 6100 50  0000 R CNN
+F 2 "Measurement_Points:Test_Point_Keystone_5019_Minature" H 2050 5600 50  0001 C CNN
+F 3 "~" H 2050 5600 50  0001 C CNN
+	1    1850 5600
+	-1   0    0    1   
+$EndComp
+Wire Wire Line
+	1500 5250 1550 5250
+Wire Wire Line
+	1950 5350 1700 5350
+Wire Wire Line
+	1700 5350 1700 5600
+Wire Wire Line
+	1950 5450 1850 5450
+Wire Wire Line
+	1850 5450 1850 5600
+Wire Wire Line
+	1550 5600 1550 5250
+Connection ~ 1550 5250
+Wire Wire Line
+	1550 5250 1950 5250
+Wire Wire Line
+	1500 5350 1700 5350
+Connection ~ 1700 5350
+Wire Wire Line
+	1500 5450 1850 5450
+Connection ~ 1850 5450
+Wire Wire Line
+	4000 5800 3900 5800
+Wire Wire Line
+	3900 5800 3900 5900
+Connection ~ 3900 5800
+Wire Wire Line
+	3900 5800 3800 5800
+$Comp
+L Connector:TestPoint TP4
+U 1 1 5D1E3E27
+P 3900 5900
+F 0 "TP4" H 3950 6150 50  0000 R CNN
+F 1 "data_out" H 4050 6250 50  0000 R CNN
+F 2 "Measurement_Points:Test_Point_Keystone_5019_Minature" H 4100 5900 50  0001 C CNN
+F 3 "~" H 4100 5900 50  0001 C CNN
+	1    3900 5900
+	-1   0    0    1   
+$EndComp
 $EndSCHEMATC
