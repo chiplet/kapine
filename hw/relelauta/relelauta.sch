@@ -5,26 +5,15 @@ EELAYER END
 $Descr A4 11693 8268
 encoding utf-8
 Sheet 1 1
-Title ""
+Title "Relelauta"
 Date ""
-Rev ""
-Comp ""
+Rev "1.2"
+Comp "Verneri Hirvonen"
 Comment1 ""
 Comment2 ""
 Comment3 ""
 Comment4 ""
 $EndDescr
-$Comp
-L Relay:RM84 K1
-U 1 1 5CED90AE
-P 9950 1600
-F 0 "K1" H 10580 1646 50  0000 L CNN
-F 1 "relay 7" H 10580 1555 50  0000 L CNN
-F 2 "RELE2:RY5W-K" H 11300 1570 50  0001 C CNN
-F 3 "http://www.relpol.pl/en/content/download/13766/168095/file/e_RM84.pdf" H 9750 1600 50  0001 C CNN
-	1    9950 1600
-	1    0    0    -1  
-$EndComp
 $Comp
 L power:+5V #PWR01
 U 1 1 5CED9E32
@@ -69,24 +58,13 @@ F 3 "" H 1450 950 50  0001 C CNN
 	1    1450 950 
 	-1   0    0    1   
 $EndComp
-$Comp
-L Transistor_BJT:2N3904 Q1
-U 1 1 5CEDDF5A
-P 9450 1000
-F 0 "Q1" H 9640 1046 50  0000 L CNN
-F 1 "2N3904" H 9640 955 50  0000 L CNN
-F 2 "TO_SOT_Packages_THT:TO-92_Inline_Narrow_Oval" H 9650 925 50  0001 L CIN
-F 3 "https://www.fairchildsemi.com/datasheets/2N/2N3904.pdf" H 9450 1000 50  0001 L CNN
-	1    9450 1000
-	1    0    0    -1  
-$EndComp
 Wire Wire Line
 	9550 1200 9550 1300
 $Comp
-L Device:R R1
+L Device:R R7
 U 1 1 5CEDF7EF
 P 9150 1150
-F 0 "R1" V 9050 1150 50  0000 C CNN
+F 0 "R7" V 9050 1150 50  0000 C CNN
 F 1 "1k" V 9150 1150 50  0000 C CNN
 F 2 "Resistors_SMD:R_0805_HandSoldering" V 9080 1150 50  0001 C CNN
 F 3 "~" H 9150 1150 50  0001 C CNN
@@ -142,10 +120,10 @@ $EndComp
 Text GLabel 10350 700  0    50   Input ~ 0
 V_coil
 $Comp
-L Device:L L1
+L Device:L L7
 U 1 1 5CEE1E62
 P 10450 950
-F 0 "L1" H 10250 1000 50  0000 L CNN
+F 0 "L7" H 10250 1000 50  0000 L CNN
 F 1 "coil7" H 10250 900 50  0000 L CNN
 F 2 "Connectors_Terminal_Blocks:TerminalBlock_bornier-2_P5.08mm" H 10450 950 50  0001 C CNN
 F 3 "~" H 10450 950 50  0001 C CNN
@@ -153,10 +131,10 @@ F 3 "~" H 10450 950 50  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L Device:D D1
+L Device:D D7
 U 1 1 5CEE2DF3
 P 10650 950
-F 0 "D1" V 10604 1029 50  0000 L CNN
+F 0 "D7" V 10604 1029 50  0000 L CNN
 F 1 "1N4001" V 10695 1029 50  0000 L CNN
 F 2 "Diodes_THT:D_DO-41_SOD81_P7.62mm_Horizontal" H 10650 950 50  0001 C CNN
 F 3 "~" H 10650 950 50  0001 C CNN
@@ -206,17 +184,6 @@ F 1 "relay 8" H 10580 3155 50  0000 L CNN
 F 2 "RELE2:RY5W-K" H 11300 3170 50  0001 C CNN
 F 3 "http://www.relpol.pl/en/content/download/13766/168095/file/e_RM84.pdf" H 9750 3200 50  0001 C CNN
 	1    9950 3200
-	1    0    0    -1  
-$EndComp
-$Comp
-L Transistor_BJT:2N3904 Q8
-U 1 1 5CF30DF7
-P 9450 2600
-F 0 "Q8" H 9640 2646 50  0000 L CNN
-F 1 "2N3904" H 9640 2555 50  0000 L CNN
-F 2 "TO_SOT_Packages_THT:TO-92_Inline_Narrow_Oval" H 9650 2525 50  0001 L CIN
-F 3 "https://www.fairchildsemi.com/datasheets/2N/2N3904.pdf" H 9450 2600 50  0001 L CNN
-	1    9450 2600
 	1    0    0    -1  
 $EndComp
 Wire Wire Line
@@ -324,34 +291,23 @@ Wire Wire Line
 	10450 2300 10350 2300
 Connection ~ 10450 2300
 $Comp
-L Relay:RM84 K6
+L Relay:RM84 K5
 U 1 1 5CF6D680
 P 8000 1600
-F 0 "K6" H 8630 1646 50  0000 L CNN
+F 0 "K5" H 8630 1646 50  0000 L CNN
 F 1 "relay 5" H 8630 1555 50  0000 L CNN
 F 2 "RELE2:RY5W-K" H 9350 1570 50  0001 C CNN
 F 3 "http://www.relpol.pl/en/content/download/13766/168095/file/e_RM84.pdf" H 7800 1600 50  0001 C CNN
 	1    8000 1600
 	1    0    0    -1  
 $EndComp
-$Comp
-L Transistor_BJT:2N3904 Q6
-U 1 1 5CF6D686
-P 7500 1000
-F 0 "Q6" H 7690 1046 50  0000 L CNN
-F 1 "2N3904" H 7690 955 50  0000 L CNN
-F 2 "TO_SOT_Packages_THT:TO-92_Inline_Narrow_Oval" H 7700 925 50  0001 L CIN
-F 3 "https://www.fairchildsemi.com/datasheets/2N/2N3904.pdf" H 7500 1000 50  0001 L CNN
-	1    7500 1000
-	1    0    0    -1  
-$EndComp
 Wire Wire Line
 	7600 1200 7600 1300
 $Comp
-L Device:R R6
+L Device:R R5
 U 1 1 5CF6D68D
 P 7200 1150
-F 0 "R6" V 7100 1150 50  0000 C CNN
+F 0 "R5" V 7100 1150 50  0000 C CNN
 F 1 "1k" V 7200 1150 50  0000 C CNN
 F 2 "Resistors_SMD:R_0805_HandSoldering" V 7130 1150 50  0001 C CNN
 F 3 "~" H 7200 1150 50  0001 C CNN
@@ -394,10 +350,10 @@ $EndComp
 Text GLabel 8400 700  0    50   Input ~ 0
 V_coil
 $Comp
-L Device:L L6
+L Device:L L5
 U 1 1 5CF6D6A7
 P 8500 950
-F 0 "L6" H 8300 1000 50  0000 L CNN
+F 0 "L5" H 8300 1000 50  0000 L CNN
 F 1 "coil5" H 8300 900 50  0000 L CNN
 F 2 "Connectors_Terminal_Blocks:TerminalBlock_bornier-2_P5.08mm" H 8500 950 50  0001 C CNN
 F 3 "~" H 8500 950 50  0001 C CNN
@@ -405,10 +361,10 @@ F 3 "~" H 8500 950 50  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L Device:D D6
+L Device:D D5
 U 1 1 5CF6D6AD
 P 8700 950
-F 0 "D6" V 8654 1029 50  0000 L CNN
+F 0 "D5" V 8654 1029 50  0000 L CNN
 F 1 "1N4001" V 8745 1029 50  0000 L CNN
 F 2 "Diodes_THT:D_DO-41_SOD81_P7.62mm_Horizontal" H 8700 950 50  0001 C CNN
 F 3 "~" H 8700 950 50  0001 C CNN
@@ -450,40 +406,18 @@ Wire Wire Line
 	8500 700  8400 700 
 Connection ~ 8500 700 
 $Comp
-L Relay:RM84 K7
+L Relay:RM84 K6
 U 1 1 5CF6D6C6
 P 8000 3200
-F 0 "K7" H 8630 3246 50  0000 L CNN
+F 0 "K6" H 8630 3246 50  0000 L CNN
 F 1 "relay 6" H 8630 3155 50  0000 L CNN
 F 2 "RELE2:RY5W-K" H 9350 3170 50  0001 C CNN
 F 3 "http://www.relpol.pl/en/content/download/13766/168095/file/e_RM84.pdf" H 7800 3200 50  0001 C CNN
 	1    8000 3200
 	1    0    0    -1  
 $EndComp
-$Comp
-L Transistor_BJT:2N3904 Q7
-U 1 1 5CF6D6CC
-P 7500 2600
-F 0 "Q7" H 7690 2646 50  0000 L CNN
-F 1 "2N3904" H 7690 2555 50  0000 L CNN
-F 2 "TO_SOT_Packages_THT:TO-92_Inline_Narrow_Oval" H 7700 2525 50  0001 L CIN
-F 3 "https://www.fairchildsemi.com/datasheets/2N/2N3904.pdf" H 7500 2600 50  0001 L CNN
-	1    7500 2600
-	1    0    0    -1  
-$EndComp
 Wire Wire Line
 	7600 2800 7600 2900
-$Comp
-L Device:R R7
-U 1 1 5CF6D6D3
-P 7200 2750
-F 0 "R7" V 7100 2750 50  0000 C CNN
-F 1 "1k" V 7200 2750 50  0000 C CNN
-F 2 "Resistors_SMD:R_0805_HandSoldering" V 7130 2750 50  0001 C CNN
-F 3 "~" H 7200 2750 50  0001 C CNN
-	1    7200 2750
-	-1   0    0    1   
-$EndComp
 Wire Wire Line
 	7200 2600 7300 2600
 Text GLabel 7200 3000 3    50   Input ~ 0
@@ -520,10 +454,10 @@ $EndComp
 Text GLabel 8400 2300 0    50   Input ~ 0
 V_coil
 $Comp
-L Device:L L7
+L Device:L L6
 U 1 1 5CF6D6ED
 P 8500 2550
-F 0 "L7" H 8300 2600 50  0000 L CNN
+F 0 "L6" H 8300 2600 50  0000 L CNN
 F 1 "coil6" H 8300 2500 50  0000 L CNN
 F 2 "Connectors_Terminal_Blocks:TerminalBlock_bornier-2_P5.08mm" H 8500 2550 50  0001 C CNN
 F 3 "~" H 8500 2550 50  0001 C CNN
@@ -531,10 +465,10 @@ F 3 "~" H 8500 2550 50  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L Device:D D7
+L Device:D D6
 U 1 1 5CF6D6F3
 P 8700 2550
-F 0 "D7" V 8654 2629 50  0000 L CNN
+F 0 "D6" V 8654 2629 50  0000 L CNN
 F 1 "1N4001" V 8745 2629 50  0000 L CNN
 F 2 "Diodes_THT:D_DO-41_SOD81_P7.62mm_Horizontal" H 8700 2550 50  0001 C CNN
 F 3 "~" H 8700 2550 50  0001 C CNN
@@ -576,34 +510,23 @@ Wire Wire Line
 	8500 2300 8400 2300
 Connection ~ 8500 2300
 $Comp
-L Relay:RM84 K4
+L Relay:RM84 K3
 U 1 1 5CFAA336
 P 6050 1600
-F 0 "K4" H 6680 1646 50  0000 L CNN
+F 0 "K3" H 6680 1646 50  0000 L CNN
 F 1 "relay 3" H 6680 1555 50  0000 L CNN
 F 2 "RELE2:RY5W-K" H 7400 1570 50  0001 C CNN
 F 3 "http://www.relpol.pl/en/content/download/13766/168095/file/e_RM84.pdf" H 5850 1600 50  0001 C CNN
 	1    6050 1600
 	1    0    0    -1  
 $EndComp
-$Comp
-L Transistor_BJT:2N3904 Q4
-U 1 1 5CFAA33C
-P 5550 1000
-F 0 "Q4" H 5740 1046 50  0000 L CNN
-F 1 "2N3904" H 5740 955 50  0000 L CNN
-F 2 "TO_SOT_Packages_THT:TO-92_Inline_Narrow_Oval" H 5750 925 50  0001 L CIN
-F 3 "https://www.fairchildsemi.com/datasheets/2N/2N3904.pdf" H 5550 1000 50  0001 L CNN
-	1    5550 1000
-	1    0    0    -1  
-$EndComp
 Wire Wire Line
 	5650 1200 5650 1300
 $Comp
-L Device:R R4
+L Device:R R3
 U 1 1 5CFAA343
 P 5250 1150
-F 0 "R4" V 5150 1150 50  0000 C CNN
+F 0 "R3" V 5150 1150 50  0000 C CNN
 F 1 "1k" V 5250 1150 50  0000 C CNN
 F 2 "Resistors_SMD:R_0805_HandSoldering" V 5180 1150 50  0001 C CNN
 F 3 "~" H 5250 1150 50  0001 C CNN
@@ -646,10 +569,10 @@ $EndComp
 Text GLabel 6450 700  0    50   Input ~ 0
 V_coil
 $Comp
-L Device:L L4
+L Device:L L3
 U 1 1 5CFAA35D
 P 6550 950
-F 0 "L4" H 6350 1000 50  0000 L CNN
+F 0 "L3" H 6350 1000 50  0000 L CNN
 F 1 "coil3" H 6350 900 50  0000 L CNN
 F 2 "Connectors_Terminal_Blocks:TerminalBlock_bornier-2_P5.08mm" H 6550 950 50  0001 C CNN
 F 3 "~" H 6550 950 50  0001 C CNN
@@ -657,10 +580,10 @@ F 3 "~" H 6550 950 50  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L Device:D D4
+L Device:D D3
 U 1 1 5CFAA363
 P 6750 950
-F 0 "D4" V 6704 1029 50  0000 L CNN
+F 0 "D3" V 6704 1029 50  0000 L CNN
 F 1 "1N4001" V 6795 1029 50  0000 L CNN
 F 2 "Diodes_THT:D_DO-41_SOD81_P7.62mm_Horizontal" H 6750 950 50  0001 C CNN
 F 3 "~" H 6750 950 50  0001 C CNN
@@ -702,34 +625,23 @@ Wire Wire Line
 	6550 700  6450 700 
 Connection ~ 6550 700 
 $Comp
-L Relay:RM84 K5
+L Relay:RM84 K4
 U 1 1 5CFAA37C
 P 6050 3200
-F 0 "K5" H 6680 3246 50  0000 L CNN
+F 0 "K4" H 6680 3246 50  0000 L CNN
 F 1 "relay 4" H 6680 3155 50  0000 L CNN
 F 2 "RELE2:RY5W-K" H 7400 3170 50  0001 C CNN
 F 3 "http://www.relpol.pl/en/content/download/13766/168095/file/e_RM84.pdf" H 5850 3200 50  0001 C CNN
 	1    6050 3200
 	1    0    0    -1  
 $EndComp
-$Comp
-L Transistor_BJT:2N3904 Q5
-U 1 1 5CFAA382
-P 5550 2600
-F 0 "Q5" H 5740 2646 50  0000 L CNN
-F 1 "2N3904" H 5740 2555 50  0000 L CNN
-F 2 "TO_SOT_Packages_THT:TO-92_Inline_Narrow_Oval" H 5750 2525 50  0001 L CIN
-F 3 "https://www.fairchildsemi.com/datasheets/2N/2N3904.pdf" H 5550 2600 50  0001 L CNN
-	1    5550 2600
-	1    0    0    -1  
-$EndComp
 Wire Wire Line
 	5650 2800 5650 2900
 $Comp
-L Device:R R5
+L Device:R R4
 U 1 1 5CFAA389
 P 5250 2750
-F 0 "R5" V 5150 2750 50  0000 C CNN
+F 0 "R4" V 5150 2750 50  0000 C CNN
 F 1 "1k" V 5250 2750 50  0000 C CNN
 F 2 "Resistors_SMD:R_0805_HandSoldering" V 5180 2750 50  0001 C CNN
 F 3 "~" H 5250 2750 50  0001 C CNN
@@ -772,10 +684,10 @@ $EndComp
 Text GLabel 6450 2300 0    50   Input ~ 0
 V_coil
 $Comp
-L Device:L L5
+L Device:L L4
 U 1 1 5CFAA3A3
 P 6550 2550
-F 0 "L5" H 6350 2600 50  0000 L CNN
+F 0 "L4" H 6350 2600 50  0000 L CNN
 F 1 "coil4" H 6350 2500 50  0000 L CNN
 F 2 "Connectors_Terminal_Blocks:TerminalBlock_bornier-2_P5.08mm" H 6550 2550 50  0001 C CNN
 F 3 "~" H 6550 2550 50  0001 C CNN
@@ -783,10 +695,10 @@ F 3 "~" H 6550 2550 50  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L Device:D D5
+L Device:D D4
 U 1 1 5CFAA3A9
 P 6750 2550
-F 0 "D5" V 6704 2629 50  0000 L CNN
+F 0 "D4" V 6704 2629 50  0000 L CNN
 F 1 "1N4001" V 6795 2629 50  0000 L CNN
 F 2 "Diodes_THT:D_DO-41_SOD81_P7.62mm_Horizontal" H 6750 2550 50  0001 C CNN
 F 3 "~" H 6750 2550 50  0001 C CNN
@@ -828,34 +740,23 @@ Wire Wire Line
 	6550 2300 6450 2300
 Connection ~ 6550 2300
 $Comp
-L Relay:RM84 K2
+L Relay:RM84 K1
 U 1 1 5CFAA3C2
 P 4100 1600
-F 0 "K2" H 4730 1646 50  0000 L CNN
+F 0 "K1" H 4730 1646 50  0000 L CNN
 F 1 "relay 1" H 4730 1555 50  0000 L CNN
 F 2 "RELE2:RY5W-K" H 5450 1570 50  0001 C CNN
 F 3 "http://www.relpol.pl/en/content/download/13766/168095/file/e_RM84.pdf" H 3900 1600 50  0001 C CNN
 	1    4100 1600
 	1    0    0    -1  
 $EndComp
-$Comp
-L Transistor_BJT:2N3904 Q2
-U 1 1 5CFAA3C8
-P 3600 1000
-F 0 "Q2" H 3790 1046 50  0000 L CNN
-F 1 "2N3904" H 3790 955 50  0000 L CNN
-F 2 "TO_SOT_Packages_THT:TO-92_Inline_Narrow_Oval" H 3800 925 50  0001 L CIN
-F 3 "https://www.fairchildsemi.com/datasheets/2N/2N3904.pdf" H 3600 1000 50  0001 L CNN
-	1    3600 1000
-	1    0    0    -1  
-$EndComp
 Wire Wire Line
 	3700 1200 3700 1300
 $Comp
-L Device:R R2
+L Device:R R1
 U 1 1 5CFAA3CF
 P 3300 1150
-F 0 "R2" V 3200 1150 50  0000 C CNN
+F 0 "R1" V 3200 1150 50  0000 C CNN
 F 1 "1k" V 3300 1150 50  0000 C CNN
 F 2 "Resistors_SMD:R_0805_HandSoldering" V 3230 1150 50  0001 C CNN
 F 3 "~" H 3300 1150 50  0001 C CNN
@@ -898,10 +799,10 @@ $EndComp
 Text GLabel 4500 700  0    50   Input ~ 0
 V_coil
 $Comp
-L Device:L L2
+L Device:L L1
 U 1 1 5CFAA3E9
 P 4600 950
-F 0 "L2" H 4400 1000 50  0000 L CNN
+F 0 "L1" H 4400 1000 50  0000 L CNN
 F 1 "coil1" H 4400 900 50  0000 L CNN
 F 2 "Connectors_Terminal_Blocks:TerminalBlock_bornier-2_P5.08mm" H 4600 950 50  0001 C CNN
 F 3 "~" H 4600 950 50  0001 C CNN
@@ -909,10 +810,10 @@ F 3 "~" H 4600 950 50  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L Device:D D2
+L Device:D D1
 U 1 1 5CFAA3EF
 P 4800 950
-F 0 "D2" V 4754 1029 50  0000 L CNN
+F 0 "D1" V 4754 1029 50  0000 L CNN
 F 1 "1N4001" V 4845 1029 50  0000 L CNN
 F 2 "Diodes_THT:D_DO-41_SOD81_P7.62mm_Horizontal" H 4800 950 50  0001 C CNN
 F 3 "~" H 4800 950 50  0001 C CNN
@@ -954,34 +855,23 @@ Wire Wire Line
 	4600 700  4500 700 
 Connection ~ 4600 700 
 $Comp
-L Relay:RM84 K3
+L Relay:RM84 K2
 U 1 1 5CFAA408
 P 4100 3200
-F 0 "K3" H 4730 3246 50  0000 L CNN
+F 0 "K2" H 4730 3246 50  0000 L CNN
 F 1 "relay 2" H 4730 3155 50  0000 L CNN
 F 2 "RELE2:RY5W-K" H 5450 3170 50  0001 C CNN
 F 3 "http://www.relpol.pl/en/content/download/13766/168095/file/e_RM84.pdf" H 3900 3200 50  0001 C CNN
 	1    4100 3200
 	1    0    0    -1  
 $EndComp
-$Comp
-L Transistor_BJT:2N3904 Q3
-U 1 1 5CFAA40E
-P 3600 2600
-F 0 "Q3" H 3790 2646 50  0000 L CNN
-F 1 "2N3904" H 3790 2555 50  0000 L CNN
-F 2 "TO_SOT_Packages_THT:TO-92_Inline_Narrow_Oval" H 3800 2525 50  0001 L CIN
-F 3 "https://www.fairchildsemi.com/datasheets/2N/2N3904.pdf" H 3600 2600 50  0001 L CNN
-	1    3600 2600
-	1    0    0    -1  
-$EndComp
 Wire Wire Line
 	3700 2800 3700 2900
 $Comp
-L Device:R R3
+L Device:R R2
 U 1 1 5CFAA415
 P 3300 2750
-F 0 "R3" V 3200 2750 50  0000 C CNN
+F 0 "R2" V 3200 2750 50  0000 C CNN
 F 1 "1k" V 3300 2750 50  0000 C CNN
 F 2 "Resistors_SMD:R_0805_HandSoldering" V 3230 2750 50  0001 C CNN
 F 3 "~" H 3300 2750 50  0001 C CNN
@@ -1024,10 +914,10 @@ $EndComp
 Text GLabel 4500 2300 0    50   Input ~ 0
 V_coil
 $Comp
-L Device:L L3
+L Device:L L2
 U 1 1 5CFAA42F
 P 4600 2550
-F 0 "L3" H 4400 2600 50  0000 L CNN
+F 0 "L2" H 4400 2600 50  0000 L CNN
 F 1 "coil2" H 4400 2500 50  0000 L CNN
 F 2 "Connectors_Terminal_Blocks:TerminalBlock_bornier-2_P5.08mm" H 4600 2550 50  0001 C CNN
 F 3 "~" H 4600 2550 50  0001 C CNN
@@ -1035,10 +925,10 @@ F 3 "~" H 4600 2550 50  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L Device:D D3
+L Device:D D2
 U 1 1 5CFAA435
 P 4800 2550
-F 0 "D3" V 4754 2629 50  0000 L CNN
+F 0 "D2" V 4754 2629 50  0000 L CNN
 F 1 "1N4001" V 4845 2629 50  0000 L CNN
 F 2 "Diodes_THT:D_DO-41_SOD81_P7.62mm_Horizontal" H 4800 2550 50  0001 C CNN
 F 3 "~" H 4800 2550 50  0001 C CNN
@@ -1532,5 +1422,115 @@ F 2 "Measurement_Points:Test_Point_Keystone_5019_Minature" H 4100 5900 50  0001 
 F 3 "~" H 4100 5900 50  0001 C CNN
 	1    3900 5900
 	-1   0    0    1   
+$EndComp
+$Comp
+L Transistor_BJT:2N3906 Q1
+U 1 1 5CEECB01
+P 3600 1000
+F 0 "Q1" H 3790 954 50  0000 L CNN
+F 1 "2N3906" H 3790 1045 50  0000 L CNN
+F 2 "TO_SOT_Packages_THT:TO-92_Inline_Narrow_Oval" H 3800 925 50  0001 L CIN
+F 3 "https://www.fairchildsemi.com/datasheets/2N/2N3906.pdf" H 3600 1000 50  0001 L CNN
+	1    3600 1000
+	1    0    0    1   
+$EndComp
+$Comp
+L Transistor_BJT:2N3906 Q2
+U 1 1 5CF05E83
+P 3600 2600
+F 0 "Q2" H 3790 2554 50  0000 L CNN
+F 1 "2N3906" H 3790 2645 50  0000 L CNN
+F 2 "TO_SOT_Packages_THT:TO-92_Inline_Narrow_Oval" H 3800 2525 50  0001 L CIN
+F 3 "https://www.fairchildsemi.com/datasheets/2N/2N3906.pdf" H 3600 2600 50  0001 L CNN
+	1    3600 2600
+	1    0    0    1   
+$EndComp
+$Comp
+L Transistor_BJT:2N3906 Q4
+U 1 1 5CF068D9
+P 5550 2600
+F 0 "Q4" H 5740 2554 50  0000 L CNN
+F 1 "2N3906" H 5740 2645 50  0000 L CNN
+F 2 "TO_SOT_Packages_THT:TO-92_Inline_Narrow_Oval" H 5750 2525 50  0001 L CIN
+F 3 "https://www.fairchildsemi.com/datasheets/2N/2N3906.pdf" H 5550 2600 50  0001 L CNN
+	1    5550 2600
+	1    0    0    1   
+$EndComp
+$Comp
+L Transistor_BJT:2N3906 Q3
+U 1 1 5CF07140
+P 5550 1000
+F 0 "Q3" H 5740 954 50  0000 L CNN
+F 1 "2N3906" H 5740 1045 50  0000 L CNN
+F 2 "TO_SOT_Packages_THT:TO-92_Inline_Narrow_Oval" H 5750 925 50  0001 L CIN
+F 3 "https://www.fairchildsemi.com/datasheets/2N/2N3906.pdf" H 5550 1000 50  0001 L CNN
+	1    5550 1000
+	1    0    0    1   
+$EndComp
+$Comp
+L Transistor_BJT:2N3906 Q5
+U 1 1 5CF07A4C
+P 7500 1000
+F 0 "Q5" H 7690 954 50  0000 L CNN
+F 1 "2N3906" H 7690 1045 50  0000 L CNN
+F 2 "TO_SOT_Packages_THT:TO-92_Inline_Narrow_Oval" H 7700 925 50  0001 L CIN
+F 3 "https://www.fairchildsemi.com/datasheets/2N/2N3906.pdf" H 7500 1000 50  0001 L CNN
+	1    7500 1000
+	1    0    0    1   
+$EndComp
+$Comp
+L Transistor_BJT:2N3906 Q6
+U 1 1 5CF081ED
+P 7500 2600
+F 0 "Q6" H 7690 2554 50  0000 L CNN
+F 1 "2N3906" H 7690 2645 50  0000 L CNN
+F 2 "TO_SOT_Packages_THT:TO-92_Inline_Narrow_Oval" H 7700 2525 50  0001 L CIN
+F 3 "https://www.fairchildsemi.com/datasheets/2N/2N3906.pdf" H 7500 2600 50  0001 L CNN
+	1    7500 2600
+	1    0    0    1   
+$EndComp
+$Comp
+L Transistor_BJT:2N3906 Q8
+U 1 1 5CF08A96
+P 9450 2600
+F 0 "Q8" H 9640 2554 50  0000 L CNN
+F 1 "2N3906" H 9640 2645 50  0000 L CNN
+F 2 "TO_SOT_Packages_THT:TO-92_Inline_Narrow_Oval" H 9650 2525 50  0001 L CIN
+F 3 "https://www.fairchildsemi.com/datasheets/2N/2N3906.pdf" H 9450 2600 50  0001 L CNN
+	1    9450 2600
+	1    0    0    1   
+$EndComp
+$Comp
+L Transistor_BJT:2N3906 Q7
+U 1 1 5CF09444
+P 9450 1000
+F 0 "Q7" H 9640 954 50  0000 L CNN
+F 1 "2N3906" H 9640 1045 50  0000 L CNN
+F 2 "TO_SOT_Packages_THT:TO-92_Inline_Narrow_Oval" H 9650 925 50  0001 L CIN
+F 3 "https://www.fairchildsemi.com/datasheets/2N/2N3906.pdf" H 9450 1000 50  0001 L CNN
+	1    9450 1000
+	1    0    0    1   
+$EndComp
+$Comp
+L Device:R R6
+U 1 1 5CF6D6D3
+P 7200 2750
+F 0 "R6" V 7100 2750 50  0000 C CNN
+F 1 "1k" V 7200 2750 50  0000 C CNN
+F 2 "Resistors_SMD:R_0805_HandSoldering" V 7130 2750 50  0001 C CNN
+F 3 "~" H 7200 2750 50  0001 C CNN
+	1    7200 2750
+	-1   0    0    1   
+$EndComp
+$Comp
+L Relay:RM84 K7
+U 1 1 5CED90AE
+P 9950 1600
+F 0 "K7" H 10580 1646 50  0000 L CNN
+F 1 "relay 7" H 10580 1555 50  0000 L CNN
+F 2 "RELE2:RY5W-K" H 11300 1570 50  0001 C CNN
+F 3 "http://www.relpol.pl/en/content/download/13766/168095/file/e_RM84.pdf" H 9750 1600 50  0001 C CNN
+	1    9950 1600
+	1    0    0    -1  
 $EndComp
 $EndSCHEMATC
