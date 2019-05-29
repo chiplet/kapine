@@ -1,4 +1,4 @@
-132520395928391
+134080466643391
 Air_Coils_SML_NEOSID
 Neosid_Air-Coil_SML_1turn_HDM0131A
 
@@ -38282,6 +38282,13 @@ RY5W-K
 0
 8
 8
+RELE2
+verkkuukkeli
+
+
+0
+0
+0
 Resistors_SMD
 R_0201
 
