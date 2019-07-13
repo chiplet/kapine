@@ -6,9 +6,14 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<AnchorPane id="AnchorPane" prefHeight="200" prefWidth="320" xmlns:fx="http://javafx.com/fxml" fx:controller="otto.kiihdytincontrolpanel.FXMLController">
-    <children>
-        <Button layoutX="126" layoutY="90" text="Click Me!" onAction="#handleButtonAction" fx:id="button" />
-        <Label layoutX="126" layoutY="120" minHeight="16" minWidth="69" fx:id="label" />
-    </children>
-</AnchorPane>
+<BorderPane id="BorderPane" prefHeight="400" prefWidth="600" xmlns:fx="http://javafx.com/fxml" fx:controller="otto.kiihdytincontrolpanel.FXMLController">
+    <left> 
+        <ListView fx:id="list"/>
+    </left>
+    <center>
+        <VBox>
+            <Button text="Test latency" onAction="#handleButtonAction" fx:id="button" />
+            <Label minHeight="16" minWidth="69" fx:id="label" />
+        </VBox>
+    </center>
+</BorderPane>
