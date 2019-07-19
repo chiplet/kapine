@@ -4,16 +4,18 @@ import javafx.application.Application;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
+import javafx.scene.layout.*;
 import javafx.stage.Stage;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.layout.VBox;
-import javafx.scene.layout.BorderPane;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.ComboBox;
-import javafx.scene.layout.HBox;
 import javafx.scene.paint.Color;
+import javafx.scene.chart.NumberAxis;
+import javafx.scene.chart.LineChart;
+import javafx.scene.chart.XYChart;
+
 
 /**
  * JavaFX App
@@ -24,15 +26,13 @@ public class App extends Application {
     public void start(Stage stage) {
         SerialInterface comm = new SerialInterface();
 
-        BorderPane pane = new BorderPane();
+        AnchorPane pane = new AnchorPane();
         pane.setPadding(new Insets(20, 20, 20, 20));
 
-        VBox leftArea = new VBox();
-        leftArea.setSpacing(10);
-        Canvas canvas = new Canvas(400, 300);
-        GraphicsContext painter = canvas.getGraphicsContext2D();
-        painter.setFill(Color.RED);
-        painter.fillRect(0,0,400,300);
+        AcceleratorStatusCanvas canvas = new AcceleratorStatusCanvas();
+        StackPane canvasPanel = new StackPane();
+        canvasPanel.getChildren().add(canvas);
+        canvasPanel.setPrefSize(500, 350);
         HBox accelerationControls = new HBox();
         accelerationControls.setSpacing(10);
         Button initiateButton = new Button();
@@ -41,6 +41,8 @@ public class App extends Application {
         ComboBox deviceSelector = new ComboBox();
 
         VBox statusPanel = new VBox();
+        statusPanel.getStyleClass().add("statusPane");
+        statusPanel.setPadding(new Insets(10, 10, 10, 10));
         Label maxSpeedCaption = new Label("Maximum speed:");
         Label maxSpeedData = new Label();
         Label currentStatusLabel = new Label("Not connected");
@@ -88,17 +90,54 @@ public class App extends Application {
             }
         });
 
+        NumberAxis sensorAxis = new NumberAxis(1,6,1);
+        NumberAxis timeAxis = new NumberAxis(0, 500, 100);
+
+        // asetetaan akseleille nimet
+        sensorAxis.setLabel("Sensori");
+        timeAxis.setLabel("Aika (ms)");
+
+        // luodaan viivakaavio. Viivakaavion arvot annetaan numeroina
+        // ja se käyttää aiemmin luotuja x- ja y-akseleita
+        LineChart<Number, Number> viivakaavio = new LineChart<>(sensorAxis, timeAxis);
+
+        // luodaan viivakaavioon lisättävä datajoukko
+        XYChart.Series testiData = new XYChart.Series();
+        // lisätään datajoukkoon yksittäisiä pisteitä
+        testiData.getData().add(new XYChart.Data(1, 200));
+        testiData.getData().add(new XYChart.Data(2, 390));
+        testiData.getData().add(new XYChart.Data(3, 400));
+        testiData.getData().add(new XYChart.Data(4, 405));
+        testiData.getData().add(new XYChart.Data(5, 407));
+        testiData.getData().add(new XYChart.Data(6, 408));
+
+        // lisätään datajoukko viivakaavioon
+        viivakaavio.getData().add(testiData);
+        viivakaavio.setPrefSize(120, 150);
+
         deviceSelector.setItems(FXCollections.observableArrayList(comm.availablePorts()));
 
         accelerationControls.getChildren().addAll(
                 initiateButton, terminateButton, connectButton, deviceSelector);
 
-        leftArea.getChildren().addAll(canvas, accelerationControls);
         statusPanel.getChildren().addAll(
-                maxSpeedCaption, maxSpeedData, currentStatusLabel);
+                maxSpeedCaption, maxSpeedData, viivakaavio, currentStatusLabel);
 
-        pane.setCenter(leftArea);
-        pane.setRight(statusPanel);
+        pane.getChildren().addAll(canvasPanel, accelerationControls, statusPanel);
+        AnchorPane.setLeftAnchor(canvasPanel, 0.0);
+        AnchorPane.setTopAnchor(canvasPanel, 0.0);
+        AnchorPane.setBottomAnchor(canvasPanel, 50.0);
+        AnchorPane.setRightAnchor(canvasPanel, 245.0);
+        AnchorPane.setLeftAnchor(accelerationControls, 0.0);
+        AnchorPane.setBottomAnchor(accelerationControls, 0.0);
+        AnchorPane.setRightAnchor(statusPanel, 0.0);
+        AnchorPane.setTopAnchor(statusPanel, 0.0);
+        AnchorPane.setBottomAnchor(statusPanel, 0.0);
+
+        canvas.widthProperty().bind(canvasPanel.widthProperty());
+        canvas.heightProperty().bind(canvasPanel.heightProperty());
+
+        pane.setPrefSize(800, 600);
 
         Scene scene = new Scene(pane);
         scene.getStylesheets().add("/styles/Styles.css");

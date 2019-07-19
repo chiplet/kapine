@@ -1,3 +1,9 @@
 .button {
     -fx-font-weight: bold;
 }
+
+.statusPane {
+    -fx-border-color: black;
+    -fx-border-style: dashed;
+    -fx-border-width: 2;
+}
