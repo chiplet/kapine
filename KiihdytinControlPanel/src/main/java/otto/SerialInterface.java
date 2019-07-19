@@ -1,23 +1,15 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
-package otto.kiihdytincontrolpanel;
+package otto;
 
 import com.fazecast.jSerialComm.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-/**
- *
- * @author ottokuusela
- */
-public class SerialLatencyTest {
+public class SerialInterface {
 
     private SerialPort port;
+    private SerialDataListener listener;
 
-    public void SerialLatencyTest() {
+    public void SerialInterface() {
     }
 
     public ArrayList<String> availablePorts() {
@@ -35,6 +27,8 @@ public class SerialLatencyTest {
         boolean successful = this.port.openPort();
         if (successful) {
             this.port.setComPortParameters(9600, 8, 1, 0);
+            this.listener = new SerialDataListener();
+            this.port.addDataListener(this.listener);
         }
         return successful;
     }
@@ -53,8 +47,8 @@ public class SerialLatencyTest {
         byte[] testData = {25, 30};
 
         int bytesWritten = this.port.writeBytes(testData, testData.length);
-        System.out.println("Successfully sent " + bytesWritten + " bytes:" + Arrays.toString(testData));  
-        
+        System.out.println("Successfully sent " + bytesWritten + " bytes:" + Arrays.toString(testData));
+
         while (this.port.bytesAvailable() == 0) {
             if (System.currentTimeMillis() - start > 1000) {
                 System.out.println("Timed out waiting for data to be echoed back");
@@ -72,6 +66,10 @@ public class SerialLatencyTest {
         long end = System.currentTimeMillis();
 
         return end - start;
+    }
+
+    public boolean send(byte[] message) {
+        return false;
     }
 
 }
