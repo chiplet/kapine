@@ -38,4 +38,3 @@ public class AcceleratorStatusCanvas extends Canvas {
         return getHeight();
     }
 }
-

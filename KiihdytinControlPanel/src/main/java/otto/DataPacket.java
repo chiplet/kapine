@@ -5,9 +5,9 @@ import java.util.ArrayList;
 public class DataPacket {
 
     private MessageClass type;
-    private ArrayList<Integer> messageContent;
+    private ArrayList<Byte> messageContent;
 
-    public DataPacket(MessageClass type, ArrayList<Integer> content) {
+    public DataPacket(MessageClass type, ArrayList<Byte> content) {
         this.type = type;
         this.messageContent = content;
     }

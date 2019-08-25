@@ -8,19 +8,21 @@ import javafx.scene.layout.*;
 import javafx.stage.Stage;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.ComboBox;
-import javafx.scene.paint.Color;
 import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.LineChart;
 import javafx.scene.chart.XYChart;
+
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.util.ArrayList;
 
 
 /**
  * JavaFX App
  */
-public class App extends Application {
+public class MainApp extends Application {
 
     @Override
     public void start(Stage stage) {
@@ -149,6 +151,24 @@ public class App extends Application {
 
     public static void main(String[] args) {
         launch();
+
+        /*ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        DataOutputStream dos = new DataOutputStream(baos);
+
+        try {
+            String message = "Hello, world!";
+            dos.writeInt(message.length());
+            dos.writeBytes(message);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        byte[] packet_bytes = baos.toByteArray();
+
+        ArrayList<Byte> bytes = new ArrayList<>();
+        DataPacket packet = new DataPacket(MessageClass.ACCELERATION_START, bytes);
+
+         */
     }
 
 }
