@@ -129,7 +129,16 @@ void loop()
   update_relays();
 
   delay(300);
-  exit(0);
+
+  Serial.println(String() + "Time: " + (m5_start - m4_start));
+
+  for (;;)
+  {
+    digitalWrite(13, HIGH);
+    delay(1000);
+    digitalWrite(13, LOW);
+    delay(1000);
+  }
 }
 
 void set_relay_bit(int index, int state)
