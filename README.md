@@ -1,2 +1,2 @@
-# Kiihdytin
-Software for a portable magnet accelerator.
+# KAPINE
+Kircular Accelerator Prototype Innovative New Experience
