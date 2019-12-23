@@ -13,10 +13,11 @@ import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.LineChart;
 import javafx.scene.chart.XYChart;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
+import java.io.FileInputStream;
+import java.io.DataInputStream;
+import java.io.InputStream;
+import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 
 
 /**
@@ -142,7 +143,23 @@ public class MainApp extends Application {
         pane.setPrefSize(800, 600);
 
         Scene scene = new Scene(pane);
-        scene.getStylesheets().add("/styles/Styles.css");
+        //scene.getStylesheets().add("/styles/Styles.css");
+
+        try {
+            File file = new File("blob.bin");
+            InputStream input = new FileInputStream(file);
+            DataInputStream stream = new DataInputStream(input);
+            byte[] bytes = new byte[stream.available()];
+            stream.readFully(bytes);
+
+
+            //byte[] bytes = {170, 85, 1, 17, 74, 101, 101, 33, 32, 74, 111, 107, 111, 32, 116, 111, 105, 109, 105, 105, 63, 146, 235};
+            DataPacket packet = DataPacket.fromBytes(bytes);
+            System.out.println(packet.toString());
+        } catch (IOException e) {
+            System.out.println(e.getMessage());
+        }
+
 
         stage.setTitle("Accelerator Control Panel");
         stage.setScene(scene);
@@ -151,24 +168,6 @@ public class MainApp extends Application {
 
     public static void main(String[] args) {
         launch();
-
-        /*ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        DataOutputStream dos = new DataOutputStream(baos);
-
-        try {
-            String message = "Hello, world!";
-            dos.writeInt(message.length());
-            dos.writeBytes(message);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        byte[] packet_bytes = baos.toByteArray();
-
-        ArrayList<Byte> bytes = new ArrayList<>();
-        DataPacket packet = new DataPacket(MessageClass.ACCELERATION_START, bytes);
-
-         */
     }
 
 }

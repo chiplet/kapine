@@ -2,15 +2,11 @@ package otto;
 
 import com.fazecast.jSerialComm.*;
 import java.util.Arrays;
-import java.util.ArrayList;
 
 public class SerialDataListener implements SerialPortDataListener {
 
-    private ArrayList<Byte> receivedByteBuffer;
-
     public SerialDataListener() {
         //super();
-        this.receivedByteBuffer = new ArrayList<>();
     }
 
     @Override
@@ -27,9 +23,10 @@ public class SerialDataListener implements SerialPortDataListener {
         byte[] newData = new byte[event.getSerialPort().bytesAvailable()];
         int receivedBytes = event.getSerialPort().readBytes(
                 newData, event.getSerialPort().bytesAvailable());
-        for (byte b : newData) {
-            this.receivedByteBuffer.add(b);
-        }
+
+        DataPacket packet = DataPacket.fromBytes(newData);
+        // TODO: do something with the packet
+        // if packet == null, there was an error decoding the byte array into a DataPacket
 
         System.out.println("Received this: " + Arrays.toString(newData));
     }
