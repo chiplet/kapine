@@ -3,7 +3,7 @@ EELAYER 26 0
 EELAYER END
 $Descr A4 11693 8268
 encoding utf-8
-Sheet 1 1
+Sheet 1 2
 Title "KAPINE Motherboard"
 Date ""
 Rev "1"
@@ -461,7 +461,7 @@ F 3 "~" H 1200 1300 50  0001 C CNN
 	1    0    0    -1  
 $EndComp
 Text Notes 9050 5750 0    50   ~ 0
-TODO:\n* 5V regulator for leds\n* leds\n* power input connector\n* programmer connector\n
+TODO:\n* 5V regulator for leds\n* data output connector for leds\n* power input connector\n* programmer connector\n
 $Comp
 L power:VDDA #PWR03
 U 1 1 5E3FE15B
@@ -639,4 +639,13 @@ Wire Wire Line
 	4650 1450 5650 1450
 Wire Wire Line
 	4350 1450 4300 1450
+$Sheet
+S 8000 1350 550  200 
+U 5E444A98
+F0 "rgb" 50
+F1 "rgb.sch" 50
+F2 "DIN" I L 8000 1450 50 
+$EndSheet
+Wire Wire Line
+	7450 1450 8000 1450
 $EndSCHEMATC
