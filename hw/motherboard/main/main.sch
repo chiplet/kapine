@@ -405,17 +405,6 @@ Wire Wire Line
 Wire Wire Line
 	5350 5400 5000 5400
 $Comp
-L MCU_ST_STM32F3:STM32F303RETx U1
-U 1 1 5F40C94C
-P 6050 4000
-F 0 "U1" H 6050 2800 50  0000 C CNN
-F 1 "STM32F303RETx" H 6050 2700 50  0000 C CNN
-F 2 "Package_QFP:LQFP-64_10x10mm_P0.5mm" H 5450 2300 50  0001 R CNN
-F 3 "http://www.st.com/st-web-ui/static/active/en/resource/technical/document/datasheet/DM00118585.pdf" H 6050 4000 50  0001 C CNN
-	1    6050 4000
-	1    0    0    -1  
-$EndComp
-$Comp
 L Device:C_Small C6
 U 1 1 5F430C9E
 P 10200 4350
@@ -436,17 +425,6 @@ Wire Wire Line
 Wire Wire Line
 	10200 4500 9850 4500
 Connection ~ 9850 4500
-Wire Wire Line
-	6250 5800 6150 5800
-Connection ~ 5950 5800
-Wire Wire Line
-	5950 5800 5850 5800
-Connection ~ 6050 5800
-Wire Wire Line
-	6050 5800 5950 5800
-Connection ~ 6150 5800
-Wire Wire Line
-	6150 5800 6050 5800
 $Comp
 L power:GND #PWR014
 U 1 1 5F44F05E
@@ -458,7 +436,6 @@ F 3 "" H 5850 5800 50  0001 C CNN
 	1    5850 5800
 	1    0    0    -1  
 $EndComp
-Connection ~ 5850 5800
 $Comp
 L power:VDD #PWR013
 U 1 1 5F456982
@@ -470,18 +447,6 @@ F 3 "" H 5850 2200 50  0001 C CNN
 	1    5850 2200
 	1    0    0    -1  
 $EndComp
-Wire Wire Line
-	5850 2200 5950 2200
-Connection ~ 5850 2200
-Connection ~ 5950 2200
-Wire Wire Line
-	5950 2200 6050 2200
-Connection ~ 6050 2200
-Wire Wire Line
-	6050 2200 6150 2200
-Connection ~ 6150 2200
-Wire Wire Line
-	6150 2200 6250 2200
 Wire Wire Line
 	6750 3900 7100 3900
 $Comp
@@ -723,50 +688,48 @@ F1 "rgb.sch" 50
 F2 "DIN" I R 5000 5400 50 
 $EndSheet
 Text Label 6900 4600 0    50   ~ 0
-em0
-Text Notes 7600 2900 0    50   ~ 0
-Electromagnet control signals: em[0..15]\nPhoto gate sensor inputs: s[0..15]
+m0
+Text Notes 1700 3850 0    50   ~ 0
+Electromagnet control signals: m[0..15]\nPhoto gate sensor inputs: s[0..15]
 $Comp
 L power:GND #PWR095
 U 1 1 5F529F84
-P 10700 5550
-F 0 "#PWR095" H 10700 5300 50  0001 C CNN
-F 1 "GND" H 10705 5377 50  0000 C CNN
-F 2 "" H 10700 5550 50  0001 C CNN
-F 3 "" H 10700 5550 50  0001 C CNN
-	1    10700 5550
+P 2200 7000
+F 0 "#PWR095" H 2200 6750 50  0001 C CNN
+F 1 "GND" H 2205 6827 50  0000 C CNN
+F 2 "" H 2200 7000 50  0001 C CNN
+F 3 "" H 2200 7000 50  0001 C CNN
+	1    2200 7000
 	1    0    0    -1  
 $EndComp
 Wire Wire Line
-	10700 5550 10700 5500
+	2200 7000 2200 6950
 $Comp
 L Connector_Generic:Conn_02x02_Counter_Clockwise J4
 U 1 1 5F5307C2
-P 10650 5300
-F 0 "J4" H 10700 5517 50  0000 C CNN
-F 1 "STACK_GND" H 10700 5426 50  0000 C CNN
-F 2 "Connector_PinSocket_2.54mm:PinSocket_2x02_P2.54mm_Vertical" H 10650 5300 50  0001 C CNN
-F 3 "~" H 10650 5300 50  0001 C CNN
-	1    10650 5300
+P 2150 6750
+F 0 "J4" H 2200 6967 50  0000 C CNN
+F 1 "STACK_GND" H 2200 6876 50  0000 C CNN
+F 2 "Connector_PinSocket_2.54mm:PinSocket_2x02_P2.54mm_Vertical" H 2150 6750 50  0001 C CNN
+F 3 "~" H 2150 6750 50  0001 C CNN
+	1    2150 6750
 	1    0    0    -1  
 $EndComp
 Wire Wire Line
-	10450 5300 10450 5400
+	1950 6750 1950 6850
 Wire Wire Line
-	10450 5500 10700 5500
-Connection ~ 10450 5400
+	1950 6950 2200 6950
+Connection ~ 1950 6850
 Wire Wire Line
-	10450 5400 10450 5500
+	1950 6850 1950 6950
 Wire Wire Line
-	10700 5500 10950 5500
+	2200 6950 2450 6950
 Wire Wire Line
-	10950 5500 10950 5400
-Connection ~ 10700 5500
-Connection ~ 10950 5400
+	2450 6950 2450 6850
+Connection ~ 2200 6950
+Connection ~ 2450 6850
 Wire Wire Line
-	10950 5400 10950 5300
-Text Notes 8750 1700 0    50   ~ 0
-TODO (Stack):\n- stack connectors\n- em control signals\n- sensor input signals
+	2450 6850 2450 6750
 $Sheet
 S 750  3400 550  300 
 U 5F4CCA9E
@@ -840,7 +803,7 @@ s0
 Wire Wire Line
 	6900 4500 6750 4500
 Text Label 5200 3900 2    50   ~ 0
-em1
+m1
 Wire Wire Line
 	5200 3900 5350 3900
 Text Label 5200 5300 2    50   ~ 0
@@ -848,7 +811,7 @@ s1
 Wire Wire Line
 	5200 5300 5350 5300
 Text Label 5200 5200 2    50   ~ 0
-em2
+m2
 Wire Wire Line
 	5200 5200 5350 5200
 Text Label 5200 5100 2    50   ~ 0
@@ -856,7 +819,7 @@ s2
 Wire Wire Line
 	5350 5100 5200 5100
 Text Label 6900 3600 0    50   ~ 0
-em3
+m3
 Text Label 6900 3500 0    50   ~ 0
 s3
 Wire Wire Line
@@ -864,7 +827,7 @@ Wire Wire Line
 Wire Wire Line
 	6900 3600 6750 3600
 Text Label 6900 3200 0    50   ~ 0
-em4
+m4
 Wire Wire Line
 	6900 3200 6750 3200
 Text Label 5200 5000 2    50   ~ 0
@@ -872,7 +835,7 @@ s4
 Wire Wire Line
 	5350 5000 5200 5000
 Text Label 5200 4900 2    50   ~ 0
-em5
+m5
 Wire Wire Line
 	5350 4900 5200 4900
 Text Label 5200 4800 2    50   ~ 0
@@ -880,7 +843,7 @@ s5
 Wire Wire Line
 	5350 4800 5200 4800
 Text Label 5200 4700 2    50   ~ 0
-em6
+m6
 Wire Wire Line
 	5350 4700 5200 4700
 Text Label 6900 5600 0    50   ~ 0
@@ -888,7 +851,7 @@ s6
 Wire Wire Line
 	6900 5600 6750 5600
 Text Label 6900 5500 0    50   ~ 0
-em7
+m7
 Wire Wire Line
 	6900 5500 6750 5500
 Text Label 6900 5400 0    50   ~ 0
@@ -896,7 +859,7 @@ s7
 Wire Wire Line
 	6900 5400 6750 5400
 Text Label 6900 5200 0    50   ~ 0
-em8
+m8
 Wire Wire Line
 	6900 5200 6750 5200
 Text Label 6900 5100 0    50   ~ 0
@@ -904,7 +867,7 @@ s8
 Wire Wire Line
 	6900 5100 6750 5100
 Text Label 6900 4300 0    50   ~ 0
-em9
+m9
 Wire Wire Line
 	6900 4300 6750 4300
 Text Label 6900 4200 0    50   ~ 0
@@ -912,7 +875,7 @@ s9
 Wire Wire Line
 	6900 4200 6750 4200
 Text Label 5200 4600 2    50   ~ 0
-em10
+m10
 Wire Wire Line
 	5200 4600 5350 4600
 Text Label 5200 4500 2    50   ~ 0
@@ -920,7 +883,7 @@ s10
 Wire Wire Line
 	5200 4500 5350 4500
 Text Label 6900 2700 0    50   ~ 0
-em11
+m11
 Wire Wire Line
 	6900 2700 6750 2700
 Text Label 6900 2600 0    50   ~ 0
@@ -928,7 +891,7 @@ s11
 Wire Wire Line
 	6800 2400 6750 2400
 Text Label 5200 4400 2    50   ~ 0
-em12
+m12
 Wire Wire Line
 	5200 4400 5350 4400
 Text Label 5200 4300 2    50   ~ 0
@@ -936,7 +899,7 @@ s12
 Wire Wire Line
 	5200 4300 5350 4300
 Text Label 5200 4200 2    50   ~ 0
-em13
+m13
 Wire Wire Line
 	5200 4200 5350 4200
 Text Label 5200 4100 2    50   ~ 0
@@ -944,7 +907,7 @@ s13
 Wire Wire Line
 	5200 4100 5350 4100
 Text Label 6900 5000 0    50   ~ 0
-em14
+m14
 Wire Wire Line
 	6900 5000 6750 5000
 Text Label 6900 4900 0    50   ~ 0
@@ -952,19 +915,213 @@ s14
 Wire Wire Line
 	6900 4900 6750 4900
 Text Label 6900 4800 0    50   ~ 0
-em15
+m15
 Text Label 6900 4700 0    50   ~ 0
 s15
 Wire Wire Line
 	6900 4800 6750 4800
 Wire Wire Line
 	6900 4700 6750 4700
-NoConn ~ 5350 5500
-NoConn ~ 5350 5600
-NoConn ~ 6750 5300
-NoConn ~ 6750 4100
-NoConn ~ 6750 3100
-NoConn ~ 6750 3000
-NoConn ~ 6750 2900
-NoConn ~ 6750 2800
+$Comp
+L Connector_Generic:Conn_02x04_Odd_Even J9
+U 1 1 5F7C296C
+P 2150 4250
+F 0 "J9" H 2200 4567 50  0000 C CNN
+F 1 "stack[0..3]" H 2200 4476 50  0000 C CNN
+F 2 "Connector_PinSocket_2.54mm:PinSocket_2x04_P2.54mm_Vertical" H 2150 4250 50  0001 C CNN
+F 3 "~" H 2150 4250 50  0001 C CNN
+	1    2150 4250
+	1    0    0    -1  
+$EndComp
+$Comp
+L Connector_Generic:Conn_02x04_Odd_Even J10
+U 1 1 5F7D5386
+P 2150 4900
+F 0 "J10" H 2200 5217 50  0000 C CNN
+F 1 "stack[0..3]" H 2200 5126 50  0000 C CNN
+F 2 "Connector_PinSocket_2.54mm:PinSocket_2x04_P2.54mm_Vertical" H 2150 4900 50  0001 C CNN
+F 3 "~" H 2150 4900 50  0001 C CNN
+	1    2150 4900
+	1    0    0    -1  
+$EndComp
+$Comp
+L Connector_Generic:Conn_02x04_Odd_Even J11
+U 1 1 5F7D6185
+P 2150 5550
+F 0 "J11" H 2200 5867 50  0000 C CNN
+F 1 "stack[0..3]" H 2200 5776 50  0000 C CNN
+F 2 "Connector_PinSocket_2.54mm:PinSocket_2x04_P2.54mm_Vertical" H 2150 5550 50  0001 C CNN
+F 3 "~" H 2150 5550 50  0001 C CNN
+	1    2150 5550
+	1    0    0    -1  
+$EndComp
+$Comp
+L Connector_Generic:Conn_02x04_Odd_Even J12
+U 1 1 5F7D6C12
+P 2150 6200
+F 0 "J12" H 2200 6517 50  0000 C CNN
+F 1 "stack[0..3]" H 2200 6426 50  0000 C CNN
+F 2 "Connector_PinSocket_2.54mm:PinSocket_2x04_P2.54mm_Vertical" H 2150 6200 50  0001 C CNN
+F 3 "~" H 2150 6200 50  0001 C CNN
+	1    2150 6200
+	1    0    0    -1  
+$EndComp
+Text Label 2450 4150 0    50   ~ 0
+m0
+Text Label 2450 4250 0    50   ~ 0
+m1
+Text Label 2450 4350 0    50   ~ 0
+m2
+Text Label 2450 4450 0    50   ~ 0
+m3
+Text Label 2450 4800 0    50   ~ 0
+m4
+Text Label 2450 4900 0    50   ~ 0
+m5
+Text Label 2450 5000 0    50   ~ 0
+m6
+Text Label 2450 5100 0    50   ~ 0
+m7
+Text Label 2450 5450 0    50   ~ 0
+m8
+Text Label 2450 5550 0    50   ~ 0
+m9
+Text Label 2450 5650 0    50   ~ 0
+m10
+Text Label 2450 5750 0    50   ~ 0
+m11
+Text Label 2450 6100 0    50   ~ 0
+m12
+Text Label 2450 6200 0    50   ~ 0
+m13
+Text Label 2450 6300 0    50   ~ 0
+m14
+Text Label 2450 6400 0    50   ~ 0
+m15
+Text Label 1950 4150 2    50   ~ 0
+s0
+Text Label 1950 4250 2    50   ~ 0
+s1
+Text Label 1950 4350 2    50   ~ 0
+s2
+Text Label 1950 4450 2    50   ~ 0
+s3
+Text Label 1950 4800 2    50   ~ 0
+s4
+Text Label 1950 4900 2    50   ~ 0
+s5
+Text Label 1950 5000 2    50   ~ 0
+s6
+Text Label 1950 5100 2    50   ~ 0
+s7
+Text Label 1950 5450 2    50   ~ 0
+s8
+Text Label 1950 5550 2    50   ~ 0
+s9
+Text Label 1950 5650 2    50   ~ 0
+s10
+Text Label 1950 5750 2    50   ~ 0
+s11
+Text Label 1950 6100 2    50   ~ 0
+s12
+Text Label 1950 6200 2    50   ~ 0
+s13
+Text Label 1950 6300 2    50   ~ 0
+s14
+Text Label 1950 6400 2    50   ~ 0
+s15
+Wire Wire Line
+	6250 5800 6150 5800
+Connection ~ 6150 5800
+Wire Wire Line
+	6150 5800 6050 5800
+Connection ~ 6050 5800
+Wire Wire Line
+	5950 5800 5850 5800
+Wire Wire Line
+	6050 5800 5950 5800
+Connection ~ 5950 5800
+Connection ~ 5850 5800
+Wire Wire Line
+	6150 2200 6250 2200
+Connection ~ 6150 2200
+Wire Wire Line
+	6050 2200 6150 2200
+Connection ~ 6050 2200
+Wire Wire Line
+	5850 2200 5950 2200
+Wire Wire Line
+	5950 2200 6050 2200
+Connection ~ 5950 2200
+Connection ~ 5850 2200
+$Comp
+L MCU_ST_STM32F3:STM32F303RETx U1
+U 1 1 5F40C94C
+P 6050 4000
+F 0 "U1" H 6050 2800 50  0000 C CNN
+F 1 "STM32F303RETx" H 6050 2700 50  0000 C CNN
+F 2 "Package_QFP:LQFP-64_10x10mm_P0.5mm" H 5450 2300 50  0001 R CNN
+F 3 "http://www.st.com/st-web-ui/static/active/en/resource/technical/document/datasheet/DM00118585.pdf" H 6050 4000 50  0001 C CNN
+	1    6050 4000
+	1    0    0    -1  
+$EndComp
+Text Label 6800 2800 0    50   ~ 0
+PA4
+Text Label 6800 2900 0    50   ~ 0
+PA5
+Text Label 6800 3000 0    50   ~ 0
+PA6
+Text Label 6800 3100 0    50   ~ 0
+PA7
+Wire Wire Line
+	6800 3100 6750 3100
+Wire Wire Line
+	6800 3000 6750 3000
+Wire Wire Line
+	6800 2900 6750 2900
+Wire Wire Line
+	6800 2800 6750 2800
+Text Label 8100 950  2    50   ~ 0
+PA4
+Text Label 8100 1050 2    50   ~ 0
+PA5
+Text Label 8100 1150 2    50   ~ 0
+PA6
+Text Label 8100 1250 2    50   ~ 0
+PA7
+Text Label 6800 4100 0    50   ~ 0
+PB0
+Wire Wire Line
+	6800 4100 6750 4100
+Text Label 8100 1350 2    50   ~ 0
+PB0
+Text Label 6800 5300 0    50   ~ 0
+PB12
+Wire Wire Line
+	6800 5300 6750 5300
+Text Label 8100 1450 2    50   ~ 0
+PB12
+Text Label 5300 5500 2    50   ~ 0
+PC14
+Text Label 5300 5600 2    50   ~ 0
+PC15
+Wire Wire Line
+	5300 5500 5350 5500
+Wire Wire Line
+	5300 5600 5350 5600
+Text Label 8100 1550 2    50   ~ 0
+PC14
+Text Label 8100 1650 2    50   ~ 0
+PC15
+$Comp
+L Connector:Conn_01x08_Female J13
+U 1 1 5F5FAC84
+P 8300 1250
+F 0 "J13" H 8328 1226 50  0000 L CNN
+F 1 "GPIO" H 8328 1135 50  0000 L CNN
+F 2 "Connector_PinSocket_2.54mm:PinSocket_1x08_P2.54mm_Vertical" H 8300 1250 50  0001 C CNN
+F 3 "~" H 8300 1250 50  0001 C CNN
+	1    8300 1250
+	1    0    0    -1  
+$EndComp
 $EndSCHEMATC
