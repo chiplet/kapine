@@ -4,9 +4,9 @@ EELAYER END
 $Descr A4 11693 8268
 encoding utf-8
 Sheet 2 4
-Title "KAPINE Motherboard RGB"
-Date ""
-Rev "1"
+Title "KAPINE Motherboard"
+Date "2020-09-02"
+Rev "1.1"
 Comp "Verneri Hirvonen"
 Comment1 ""
 Comment2 ""
@@ -1586,17 +1586,6 @@ Text Label 1050 5750 0    50   ~ 0
 5V_RGB
 Text Label 1050 6500 0    50   ~ 0
 5V_RGB
-$Comp
-L Switch:SW_SPDT SW2
-U 1 1 5F581FDB
-P 2050 3100
-F 0 "SW2" H 2050 2775 50  0000 C CNN
-F 1 "SW_SPDT" H 2050 2866 50  0000 C CNN
-F 2 "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical" H 2050 3100 50  0001 C CNN
-F 3 "~" H 2050 3100 50  0001 C CNN
-	1    2050 3100
-	-1   0    0    1   
-$EndComp
 Wire Wire Line
 	2400 3150 2400 3100
 Wire Wire Line
@@ -1613,27 +1602,26 @@ F 3 "" H 2400 3500 50  0001 C CNN
 	1    0    0    -1  
 $EndComp
 Wire Wire Line
-	1400 3000 1850 3000
-NoConn ~ 1850 3200
+	1150 3100 1500 3100
 Text Label 2550 3100 0    50   ~ 0
 5V_RGB
 Wire Wire Line
 	2550 3100 2400 3100
 Connection ~ 2400 3100
 Wire Wire Line
-	2400 3100 2250 3100
+	2400 3100 2100 3100
 $Comp
 L power:+5V #PWR025
 U 1 1 5F5D5CD4
-P 1400 3000
-F 0 "#PWR025" H 1400 2850 50  0001 C CNN
-F 1 "+5V" H 1415 3173 50  0000 C CNN
-F 2 "" H 1400 3000 50  0001 C CNN
-F 3 "" H 1400 3000 50  0001 C CNN
-	1    1400 3000
+P 1150 3100
+F 0 "#PWR025" H 1150 2950 50  0001 C CNN
+F 1 "+5V" H 1165 3273 50  0000 C CNN
+F 2 "" H 1150 3100 50  0001 C CNN
+F 3 "" H 1150 3100 50  0001 C CNN
+	1    1150 3100
 	1    0    0    -1  
 $EndComp
-Text Notes 850  2650 0    50   ~ 0
+Text Notes 600  2750 0    50   ~ 0
 LED power switch and \ninput capacitor
 $Comp
 L Device:CP C46
@@ -1641,13 +1629,33 @@ U 1 1 5F657B86
 P 2400 3300
 F 0 "C46" H 2518 3346 50  0000 L CNN
 F 1 "1000u" H 2518 3255 50  0000 L CNN
-F 2 "Capacitor_THT:CP_Radial_D10.0mm_P5.00mm" H 2438 3150 50  0001 C CNN
+F 2 "Capacitor_SMD:CP_Elec_10x10" H 2438 3150 50  0001 C CNN
 F 3 "~" H 2400 3300 50  0001 C CNN
 	1    2400 3300
 	1    0    0    -1  
 $EndComp
-Text Label 3400 1100 0    50   ~ 0
-5V_RGB
 Wire Notes Line
 	3800 2050 2550 2050
+$Comp
+L Device:Jumper JP2
+U 1 1 5F69E68B
+P 1800 3100
+F 0 "JP2" H 1800 3364 50  0000 C CNN
+F 1 "RGB ENABLE" H 1800 3273 50  0000 C CNN
+F 2 "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical" H 1800 3100 50  0001 C CNN
+F 3 "~" H 1800 3100 50  0001 C CNN
+	1    1800 3100
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:+5V #PWR016
+U 1 1 5F6DB28F
+P 3400 1100
+F 0 "#PWR016" H 3400 950 50  0001 C CNN
+F 1 "+5V" H 3415 1273 50  0000 C CNN
+F 2 "" H 3400 1100 50  0001 C CNN
+F 3 "" H 3400 1100 50  0001 C CNN
+	1    3400 1100
+	1    0    0    -1  
+$EndComp
 $EndSCHEMATC

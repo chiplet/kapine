@@ -405,17 +405,6 @@ Wire Wire Line
 Wire Wire Line
 	5350 5400 5000 5400
 $Comp
-L MCU_ST_STM32F3:STM32F303RETx U1
-U 1 1 5F40C94C
-P 6050 4000
-F 0 "U1" H 6050 2800 50  0000 C CNN
-F 1 "STM32F303RETx" H 6050 2700 50  0000 C CNN
-F 2 "Package_QFP:LQFP-64_10x10mm_P0.5mm" H 5450 2300 50  0001 R CNN
-F 3 "http://www.st.com/st-web-ui/static/active/en/resource/technical/document/datasheet/DM00118585.pdf" H 6050 4000 50  0001 C CNN
-	1    6050 4000
-	1    0    0    -1  
-$EndComp
-$Comp
 L Device:C_Small C6
 U 1 1 5F430C9E
 P 10200 4350
@@ -436,17 +425,6 @@ Wire Wire Line
 Wire Wire Line
 	10200 4500 9850 4500
 Connection ~ 9850 4500
-Wire Wire Line
-	6250 5800 6150 5800
-Connection ~ 5950 5800
-Wire Wire Line
-	5950 5800 5850 5800
-Connection ~ 6050 5800
-Wire Wire Line
-	6050 5800 5950 5800
-Connection ~ 6150 5800
-Wire Wire Line
-	6150 5800 6050 5800
 $Comp
 L power:GND #PWR014
 U 1 1 5F44F05E
@@ -458,7 +436,6 @@ F 3 "" H 5850 5800 50  0001 C CNN
 	1    5850 5800
 	1    0    0    -1  
 $EndComp
-Connection ~ 5850 5800
 $Comp
 L power:VDD #PWR013
 U 1 1 5F456982
@@ -470,18 +447,6 @@ F 3 "" H 5850 2200 50  0001 C CNN
 	1    5850 2200
 	1    0    0    -1  
 $EndComp
-Wire Wire Line
-	5850 2200 5950 2200
-Connection ~ 5850 2200
-Connection ~ 5950 2200
-Wire Wire Line
-	5950 2200 6050 2200
-Connection ~ 6050 2200
-Wire Wire Line
-	6050 2200 6150 2200
-Connection ~ 6150 2200
-Wire Wire Line
-	6150 2200 6250 2200
 Wire Wire Line
 	6750 3900 7100 3900
 $Comp
@@ -957,14 +922,6 @@ Wire Wire Line
 	6900 4800 6750 4800
 Wire Wire Line
 	6900 4700 6750 4700
-NoConn ~ 5350 5500
-NoConn ~ 5350 5600
-NoConn ~ 6750 5300
-NoConn ~ 6750 4100
-NoConn ~ 6750 3100
-NoConn ~ 6750 3000
-NoConn ~ 6750 2900
-NoConn ~ 6750 2800
 $Comp
 L Connector_Generic:Conn_02x04_Odd_Even J9
 U 1 1 5F7C296C
@@ -1073,4 +1030,98 @@ Text Label 1950 6300 2    50   ~ 0
 s14
 Text Label 1950 6400 2    50   ~ 0
 s15
+Wire Wire Line
+	6250 5800 6150 5800
+Connection ~ 6150 5800
+Wire Wire Line
+	6150 5800 6050 5800
+Connection ~ 6050 5800
+Wire Wire Line
+	5950 5800 5850 5800
+Wire Wire Line
+	6050 5800 5950 5800
+Connection ~ 5950 5800
+Connection ~ 5850 5800
+Wire Wire Line
+	6150 2200 6250 2200
+Connection ~ 6150 2200
+Wire Wire Line
+	6050 2200 6150 2200
+Connection ~ 6050 2200
+Wire Wire Line
+	5850 2200 5950 2200
+Wire Wire Line
+	5950 2200 6050 2200
+Connection ~ 5950 2200
+Connection ~ 5850 2200
+$Comp
+L MCU_ST_STM32F3:STM32F303RETx U1
+U 1 1 5F40C94C
+P 6050 4000
+F 0 "U1" H 6050 2800 50  0000 C CNN
+F 1 "STM32F303RETx" H 6050 2700 50  0000 C CNN
+F 2 "Package_QFP:LQFP-64_10x10mm_P0.5mm" H 5450 2300 50  0001 R CNN
+F 3 "http://www.st.com/st-web-ui/static/active/en/resource/technical/document/datasheet/DM00118585.pdf" H 6050 4000 50  0001 C CNN
+	1    6050 4000
+	1    0    0    -1  
+$EndComp
+Text Label 6800 2800 0    50   ~ 0
+PA4
+Text Label 6800 2900 0    50   ~ 0
+PA5
+Text Label 6800 3000 0    50   ~ 0
+PA6
+Text Label 6800 3100 0    50   ~ 0
+PA7
+Wire Wire Line
+	6800 3100 6750 3100
+Wire Wire Line
+	6800 3000 6750 3000
+Wire Wire Line
+	6800 2900 6750 2900
+Wire Wire Line
+	6800 2800 6750 2800
+Text Label 8100 950  2    50   ~ 0
+PA4
+Text Label 8100 1050 2    50   ~ 0
+PA5
+Text Label 8100 1150 2    50   ~ 0
+PA6
+Text Label 8100 1250 2    50   ~ 0
+PA7
+Text Label 6800 4100 0    50   ~ 0
+PB0
+Wire Wire Line
+	6800 4100 6750 4100
+Text Label 8100 1350 2    50   ~ 0
+PB0
+Text Label 6800 5300 0    50   ~ 0
+PB12
+Wire Wire Line
+	6800 5300 6750 5300
+Text Label 8100 1450 2    50   ~ 0
+PB12
+Text Label 5300 5500 2    50   ~ 0
+PC14
+Text Label 5300 5600 2    50   ~ 0
+PC15
+Wire Wire Line
+	5300 5500 5350 5500
+Wire Wire Line
+	5300 5600 5350 5600
+Text Label 8100 1550 2    50   ~ 0
+PC14
+Text Label 8100 1650 2    50   ~ 0
+PC15
+$Comp
+L Connector:Conn_01x08_Female J13
+U 1 1 5F5FAC84
+P 8300 1250
+F 0 "J13" H 8328 1226 50  0000 L CNN
+F 1 "GPIO" H 8328 1135 50  0000 L CNN
+F 2 "Connector_PinSocket_2.54mm:PinSocket_1x08_P2.54mm_Vertical" H 8300 1250 50  0001 C CNN
+F 3 "~" H 8300 1250 50  0001 C CNN
+	1    8300 1250
+	1    0    0    -1  
+$EndComp
 $EndSCHEMATC

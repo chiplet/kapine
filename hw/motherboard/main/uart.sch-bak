@@ -322,8 +322,6 @@ F 3 "" H 5150 1400 50  0001 C CNN
 	1    5150 1400
 	1    0    0    -1  
 $EndComp
-Text Notes 9000 850  0    50   ~ 0
-TODO: Configure as bus powered\n- Protection circuitry\n- Configuration jumper for MCU power from USB
 Wire Wire Line
 	7050 3500 7800 3500
 Wire Wire Line

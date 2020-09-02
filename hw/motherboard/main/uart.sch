@@ -4,9 +4,9 @@ EELAYER END
 $Descr A4 11693 8268
 encoding utf-8
 Sheet 4 4
-Title "KAPINE Motherboard UART"
-Date ""
-Rev ""
+Title "KAPINE Motherboard"
+Date "2020-09-02"
+Rev "1.1"
 Comp "Verneri Hirvonen"
 Comment1 ""
 Comment2 ""
@@ -322,8 +322,6 @@ F 3 "" H 5150 1400 50  0001 C CNN
 	1    5150 1400
 	1    0    0    -1  
 $EndComp
-Text Notes 9000 850  0    50   ~ 0
-TODO: Configure as bus powered\n- Protection circuitry\n- Configuration jumper for MCU power from USB
 Wire Wire Line
 	7050 3500 7800 3500
 Wire Wire Line
