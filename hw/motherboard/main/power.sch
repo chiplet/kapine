@@ -6,7 +6,7 @@ encoding utf-8
 Sheet 3 4
 Title "KAPINE Motherboard"
 Date "2020-09-02"
-Rev "1.1"
+Rev "1.2"
 Comp "Verneri Hirvonen"
 Comment1 ""
 Comment2 ""
@@ -129,29 +129,18 @@ F 3 "~" H 1150 1450 50  0001 C CNN
 	1    0    0    -1  
 $EndComp
 Wire Wire Line
-	1350 1450 1600 1450
+	1350 1450 1850 1450
 Wire Wire Line
 	1350 1550 1600 1550
 $Comp
-L power:GND #PWR021
-U 1 1 5F4BFEB4
-P 1600 1550
-F 0 "#PWR021" H 1600 1300 50  0001 C CNN
-F 1 "GND" H 1605 1377 50  0000 C CNN
-F 2 "" H 1600 1550 50  0001 C CNN
-F 3 "" H 1600 1550 50  0001 C CNN
-	1    1600 1550
-	1    0    0    -1  
-$EndComp
-$Comp
 L power:+5V #PWR019
 U 1 1 5F4C0045
-P 1600 1450
-F 0 "#PWR019" H 1600 1300 50  0001 C CNN
-F 1 "+5V" H 1615 1623 50  0000 C CNN
-F 2 "" H 1600 1450 50  0001 C CNN
-F 3 "" H 1600 1450 50  0001 C CNN
-	1    1600 1450
+P 2800 1450
+F 0 "#PWR019" H 2800 1300 50  0001 C CNN
+F 1 "+5V" H 2815 1623 50  0000 C CNN
+F 2 "" H 2800 1450 50  0001 C CNN
+F 3 "" H 2800 1450 50  0001 C CNN
+	1    2800 1450
 	1    0    0    -1  
 $EndComp
 Text Notes 5150 2600 0    50   ~ 0
@@ -263,8 +252,6 @@ Wire Wire Line
 	5400 2050 5400 1950
 Wire Wire Line
 	5400 2050 6000 2050
-Text Notes 1500 1100 0    50   ~ 0
-TODO: reverse polarity protection
 Text Notes 7400 1450 0    50   ~ 0
 Power Label Descriptions:\n* +5V -- external 5V input for regulators\n* VDD -- regulated 3.3V Digital logic power\n* VDDA -- regulated 3.3V Analog reference voltage
 $Comp
@@ -385,4 +372,39 @@ F 3 "" H 1750 2650 50  0001 C CNN
 $EndComp
 Text Notes 1200 2300 0    50   ~ 0
 Power Indicators
+Text Notes 2750 2550 0    50   ~ 0
+TODO: verify pinout
+$Comp
+L Device:Q_PMOS_GSD Q2
+U 1 1 5F519668
+P 2050 1550
+F 0 "Q2" V 2392 1550 50  0000 C CNN
+F 1 "Q_PMOS_GSD" V 2301 1550 50  0000 C CNN
+F 2 "Package_TO_SOT_SMD:SOT-23" H 2250 1650 50  0001 C CNN
+F 3 "~" H 2050 1550 50  0001 C CNN
+	1    2050 1550
+	0    -1   -1   0   
+$EndComp
+$Comp
+L power:GND #PWR021
+U 1 1 5F51B2CA
+P 2050 1850
+F 0 "#PWR021" H 2050 1600 50  0001 C CNN
+F 1 "GND" H 2055 1677 50  0000 C CNN
+F 2 "" H 2050 1850 50  0001 C CNN
+F 3 "" H 2050 1850 50  0001 C CNN
+	1    2050 1850
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	2250 1450 2800 1450
+Wire Wire Line
+	2050 1750 2050 1800
+Wire Wire Line
+	2050 1800 1600 1800
+Wire Wire Line
+	1600 1800 1600 1550
+Connection ~ 2050 1800
+Wire Wire Line
+	2050 1800 2050 1850
 $EndSCHEMATC

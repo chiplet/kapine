@@ -5,8 +5,8 @@ $Descr A4 11693 8268
 encoding utf-8
 Sheet 1 4
 Title "KAPINE Motherboard"
-Date "2020-09-02"
-Rev "1.1"
+Date "2020-09-03"
+Rev "1.2"
 Comp "Verneri Hirvonen"
 Comment1 ""
 Comment2 ""
