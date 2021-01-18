@@ -11,18 +11,14 @@
 
 use panic_halt as _;
 
-use nb::block;
-
 use cortex_m_rt::entry;
 use embedded_hal::digital::v2::OutputPin;
-use stm32f1xx_hal::{pac, prelude::*, timer::Timer};
+use stm32f1xx_hal::{pac, prelude::*, delay::Delay};
 
 #[entry]
 fn main() -> ! {
-    // Get access to the core peripherals from the cortex-m crate
-    let cp = cortex_m::Peripherals::take().unwrap();
-    // Get access to the device specific peripherals from the peripheral access crate
-    let dp = pac::Peripherals::take().unwrap();
+    let cp = cortex_m::Peripherals::take().unwrap();    // get access to cortex-m core peripherals
+    let dp = pac::Peripherals::take().unwrap();         // get access to mcu device peripherals
 
     // Take ownership over the raw flash and rcc devices and convert them into the corresponding
     // HAL structs
@@ -39,23 +35,29 @@ fn main() -> ! {
 
     // Configure gpio C pin 13 as a push-pull output. The `crh` register is passed to the function
     // in order to configure the port. For pins 0-7, crl should be passed instead.
-    let mut led = gpioc.pc13.into_push_pull_output(&mut gpioc.crh);
-    // Configure the syst timer to trigger an update every second
-    let mut timer = Timer::syst(cp.SYST, &clocks).start_count_down(1.hz());
+    let mut led = gpioc.pc13.into_push_pull_output(&mut gpioc.crh); // PC13 contols dev board LED
+    let mut em = gpiob.pb12.into_push_pull_output(&mut gpiob.crh);  // PB12 controls electromagnet gate
 
-    // PB12 controls MOSFET gate
-    let mut em = gpiob.pb12.into_push_pull_output(&mut gpiob.crh);
+    let mut delay = Delay::new(cp.SYST, clocks);
 
-    // Wait for the timer to trigger an update and change the state of the LED
     loop {
-        // set LED and EM signals high
-        block!(timer.wait()).unwrap();
+        // turn off indicator and wait for a while
         led.set_high().unwrap();
-        em.set_high().unwrap();
+        delay.delay_ms(3000_u16);
 
-        // set LED and EM signals low
-        block!(timer.wait()).unwrap();
+        // warn about turning on electromagnet by blinking LED
+        
+        for _ in 0..5 {
+            led.set_low().unwrap();
+            delay.delay_ms(100_u16);
+            led.set_high().unwrap();
+            delay.delay_ms(100_u16);
+        }
         led.set_low().unwrap();
+
+        // toggle electromagnet on for 500ms
+        em.set_high().unwrap();
+        delay.delay_ms(500_u16);
         em.set_low().unwrap();
     }
 }
