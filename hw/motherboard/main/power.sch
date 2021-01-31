@@ -385,38 +385,32 @@ Wire Wire Line
 	4050 1550 4600 1550
 Wire Wire Line
 	3850 1850 3850 1950
-$Comp
-L Connector_Generic:Conn_02x02_Counter_Clockwise J6
-U 1 1 60467FEA
-P 1750 1600
-F 0 "J6" H 1800 1300 50  0000 C CNN
-F 1 "STACK_5V" H 1800 1400 50  0000 C CNN
-F 2 "Connector_PinSocket_2.54mm:PinSocket_2x02_P2.54mm_Vertical" H 1750 1600 50  0001 C CNN
-F 3 "~" H 1750 1600 50  0001 C CNN
-	1    1750 1600
-	1    0    0    -1  
-$EndComp
 Text Notes 3550 1200 0    50   ~ 0
 Polarity protection
-Wire Wire Line
-	2050 1700 2050 1600
-Wire Wire Line
-	2050 1500 1800 1500
-Wire Wire Line
-	1800 1500 1800 1450
-Connection ~ 2050 1600
-Wire Wire Line
-	2050 1600 2050 1500
-Wire Wire Line
-	1800 1500 1550 1500
-Wire Wire Line
-	1550 1500 1550 1600
-Connection ~ 1800 1500
-Connection ~ 1550 1600
-Wire Wire Line
-	1550 1600 1550 1700
-Text Label 1800 1450 0    50   ~ 0
-5V_in
 Text Label 3150 1550 2    50   ~ 0
 5V_in
+$Comp
+L Connector_Generic:Conn_01x02 J6
+U 1 1 6019543D
+P 1600 1700
+F 0 "J6" H 1680 1692 50  0000 L CNN
+F 1 "STACK_5V" H 1680 1601 50  0000 L CNN
+F 2 "Connector_PinSocket_2.54mm:PinSocket_1x02_P2.54mm_Vertical" H 1600 1700 50  0001 C CNN
+F 3 "~" H 1600 1700 50  0001 C CNN
+	1    1600 1700
+	1    0    0    -1  
+$EndComp
+Text Label 1350 1600 0    50   ~ 0
+5V_in
+Wire Wire Line
+	1350 1600 1350 1700
+Wire Wire Line
+	1350 1800 1400 1800
+Wire Wire Line
+	1400 1700 1350 1700
+Connection ~ 1350 1700
+Wire Wire Line
+	1350 1700 1350 1800
+Text Notes 1100 1400 0    50   ~ 0
+5V input from relelauta
 $EndSCHEMATC

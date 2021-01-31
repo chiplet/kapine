@@ -169,7 +169,7 @@ F 1 "motherboard connector" H 7378 3935 50  0000 L CNN
 F 2 "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Horizontal" H 7350 4000 50  0001 C CNN
 F 3 "~" H 7350 4000 50  0001 C CNN
 	1    7350 4000
-	1    0    0    -1  
+	1    0    0    1   
 $EndComp
 Text Label 7050 3900 2    50   ~ 0
 signal_out
