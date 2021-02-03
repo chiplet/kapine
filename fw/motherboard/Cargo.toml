@@ -12,10 +12,12 @@ nb = "0.1.2"
 cortex-m = "0.6.2"
 cortex-m-rt = "0.6.11"
 panic-halt = "0.2.0"
+panic-semihosting = "0.5.6"
 
-[dependencies.stm32f1xx-hal]
+[dependencies.stm32f3xx-hal]
 version = "0.6.1"
-features = ["rt", "stm32f103", "medium"]
+features = ["rt", "stm32f303xe"]
+
 
 # Uncomment for the panic example.
 # panic-itm = "0.4.1"
