@@ -39,25 +39,28 @@ fn main() -> ! {
 
     // Configure gpio A pin 5 as a push-pull output. The `crh` register is passed to the function
     // in order to configure the port. For pins 0-7, crl should be passed instead.
-    let mut led = gpio_a.pa5.into_push_pull_output(&mut gpio_a.moder, &mut gpio_a.otyper).downgrade().downgrade();
+    let mut debug_1 = gpio_a.pa0.into_push_pull_output(&mut gpio_a.moder, &mut gpio_a.otyper).downgrade().downgrade();
+    let mut debug_2 = gpio_a.pa1.into_push_pull_output(&mut gpio_a.moder, &mut gpio_a.otyper).downgrade().downgrade();
     // let mut em = gpiob.pb12.into_push_pull_output(&mut gpiob.crh);   // PB12 controls electromagnet gate
 
     let mut delay = Delay::new(cp.SYST, clocks);
 
     loop {
         // turn off indicator and wait for a while
-        led.set_low().unwrap();
+        debug_1.set_low().unwrap();
+        debug_2.set_high().unwrap();
         asm::delay(3*8_000_000);
 
         // warn about turning on electromagnet by blinking LED
         
+        debug_2.set_low().unwrap();
         for _ in 0..5 {
-            led.set_high().unwrap();
+            debug_1.set_high().unwrap();
             delay.delay_ms(100_u16);
-            led.set_low().unwrap();
+            debug_1.set_low().unwrap();
             delay.delay_ms(100_u16);
         }
-        led.set_high().unwrap();
+        debug_1.set_high().unwrap();
 
         // toggle electromagnet on for 500ms
         // em.set_high().unwrap();
