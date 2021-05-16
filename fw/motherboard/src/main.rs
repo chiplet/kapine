@@ -1,70 +1,111 @@
-#![deny(unsafe_code)]
+//! CDC-ACM serial port example using polling in a busy loop.
+//! Target board: STM32F3DISCOVERY
 #![no_std]
 #![no_main]
 
-// use panic_halt as _;
 use panic_semihosting as _;
 
-use cortex_m_rt::entry;
-use cortex_m::asm;
-use embedded_hal::digital::v2::OutputPin;
-use stm32f3xx_hal::{pac, prelude::*, delay::Delay};
+use stm32f3xx_hal as hal;
 
-// D13 (PA5) is connected to user LED (green)
-// https://www.st.com/resource/en/user_manual/dm00105823-stm32-nucleo64-boards-mb1136-stmicroelectronics.pdf
+use cortex_m::asm::delay;
+use cortex_m_rt::entry;
+
+use hal::pac;
+use hal::prelude::*;
+use hal::usb::{Peripheral, UsbBus};
+
+use usb_device::prelude::*;
+use usbd_serial::{SerialPort, USB_CLASS_CDC};
 
 #[entry]
 fn main() -> ! {
-    let cp = cortex_m::Peripherals::take().unwrap();    // get access to cortex-m core peripherals
-    let dp = pac::Peripherals::take().unwrap();         // get access to mcu device peripherals
+    let dp = pac::Peripherals::take().unwrap();
 
-    // Take ownership over the raw flash and rcc devices and convert them into the corresponding
-    // HAL structs
     let mut flash = dp.FLASH.constrain();
     let mut rcc = dp.RCC.constrain();
 
-    // Freeze the configuration of all the clocks in the system and store the frozen frequencies in
-    // `clocks`
-    let clocks = rcc.cfgr.freeze(&mut flash.acr);
+    let clocks = rcc
+        .cfgr
+        .use_hse(8u32.MHz())
+        .sysclk(48u32.MHz())
+        .pclk1(24u32.MHz())
+        .pclk2(24u32.MHz())
+        .freeze(&mut flash.acr);
 
-    // Acquire GPIO peripherals
-    let mut gpio_a = dp.GPIOA.split(&mut rcc.ahb);
-    let mut _gpio_b = dp.GPIOB.split(&mut rcc.ahb);
-    let mut _gpio_c = dp.GPIOC.split(&mut rcc.ahb);
-    let mut _gpio_d = dp.GPIOD.split(&mut rcc.ahb);
-    let mut _gpio_e = dp.GPIOE.split(&mut rcc.ahb);
-    let mut _gpio_f = dp.GPIOF.split(&mut rcc.ahb);
-    let mut _gpio_g = dp.GPIOG.split(&mut rcc.ahb);
-    let mut _gpio_h = dp.GPIOH.split(&mut rcc.ahb);
+    assert!(clocks.usbclk_valid());
 
-    // Configure gpio A pin 5 as a push-pull output. The `crh` register is passed to the function
-    // in order to configure the port. For pins 0-7, crl should be passed instead.
-    let mut debug_1 = gpio_a.pa0.into_push_pull_output(&mut gpio_a.moder, &mut gpio_a.otyper).downgrade().downgrade();
-    let mut debug_2 = gpio_a.pa1.into_push_pull_output(&mut gpio_a.moder, &mut gpio_a.otyper).downgrade().downgrade();
-    // let mut em = gpiob.pb12.into_push_pull_output(&mut gpiob.crh);   // PB12 controls electromagnet gate
+    // Configure the on-board LED (LD10, south red)
+    let mut gpioe = dp.GPIOE.split(&mut rcc.ahb);
+    let mut led = gpioe
+        .pe13
+        .into_push_pull_output(&mut gpioe.moder, &mut gpioe.otyper);
+    led.set_low().ok(); // Turn off
 
-    let mut delay = Delay::new(cp.SYST, clocks);
+    let mut gpioa = dp.GPIOA.split(&mut rcc.ahb);
+
+    // F3 Discovery board has a pull-up resistor on the D+ line.
+    // Pull the D+ pin down to send a RESET condition to the USB bus.
+    // This forced reset is needed only for development, without it host
+    // will not reset your device when you upload new firmware.
+    let mut usb_dp = gpioa
+        .pa12
+        .into_push_pull_output(&mut gpioa.moder, &mut gpioa.otyper);
+    usb_dp.set_low().ok();
+    delay(clocks.sysclk().0 / 100);
+
+    let usb_dm =
+        gpioa
+            .pa11
+            .into_af14_push_pull(&mut gpioa.moder, &mut gpioa.otyper, &mut gpioa.afrh);
+    let usb_dp = usb_dp.into_af14_push_pull(&mut gpioa.moder, &mut gpioa.otyper, &mut gpioa.afrh);
+
+    let usb = Peripheral {
+        usb: dp.USB,
+        pin_dm: usb_dm,
+        pin_dp: usb_dp,
+    };
+    let usb_bus = UsbBus::new(usb);
+
+    let mut serial = SerialPort::new(&usb_bus);
+
+    let mut usb_dev = UsbDeviceBuilder::new(&usb_bus, UsbVidPid(0x16c0, 0x27dd))
+        .manufacturer("Fake company")
+        .product("Serial port")
+        .serial_number("TEST")
+        .device_class(USB_CLASS_CDC)
+        .build();
 
     loop {
-        // turn off indicator and wait for a while
-        debug_1.set_low().unwrap();
-        debug_2.set_high().unwrap();
-        asm::delay(3*8_000_000);
-
-        // warn about turning on electromagnet by blinking LED
-        
-        debug_2.set_low().unwrap();
-        for _ in 0..5 {
-            debug_1.set_high().unwrap();
-            delay.delay_ms(100_u16);
-            debug_1.set_low().unwrap();
-            delay.delay_ms(100_u16);
+        if !usb_dev.poll(&mut [&mut serial]) {
+            continue;
         }
-        debug_1.set_high().unwrap();
 
-        // toggle electromagnet on for 500ms
-        // em.set_high().unwrap();
-        delay.delay_ms(500_u16);
-        // em.set_low().unwrap();
+        let mut buf = [0u8; 64];
+
+        match serial.read(&mut buf) {
+            Ok(count) if count > 0 => {
+                led.set_high().ok(); // Turn on
+
+                // Echo back in upper case
+                for c in buf[0..count].iter_mut() {
+                    if 0x61 <= *c && *c <= 0x7a {
+                        *c &= !0x20;
+                    }
+                }
+
+                let mut write_offset = 0;
+                while write_offset < count {
+                    match serial.write(&buf[write_offset..count]) {
+                        Ok(len) if len > 0 => {
+                            write_offset += len;
+                        }
+                        _ => {}
+                    }
+                }
+            }
+            _ => {}
+        }
+
+        led.set_low().ok(); // Turn off
     }
 }
