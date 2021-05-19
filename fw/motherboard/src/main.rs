@@ -11,12 +11,20 @@ use cortex_m_rt::entry;
 use cortex_m::asm;
 use embedded_hal::digital::v2::OutputPin;
 use stm32f3xx_hal::{pac, prelude::*, delay::Delay};
+use stm32f3xx_hal::time::*;
+use stm32f3xx_hal::timer::*;
+use ws2812_timer_delay as ws2812;
+use ws2812::Ws2812;
+use cortex_m::peripheral::Peripherals;
+
+use smart_leds::{brightness, SmartLedsWrite, RGB8};
 
 // D13 (PA5) is connected to user LED (green)
 // https://www.st.com/resource/en/user_manual/dm00105823-stm32-nucleo64-boards-mb1136-stmicroelectronics.pdf
 
 #[entry]
 fn main() -> ! {
+    /*
     let cp = cortex_m::Peripherals::take().unwrap();    // get access to cortex-m core peripherals
     let dp = pac::Peripherals::take().unwrap();         // get access to mcu device peripherals
 
@@ -63,6 +71,9 @@ fn main() -> ! {
     let mut m14 = RefCell::new(gpio_b.pb9.into_push_pull_output(&mut gpio_b.moder, &mut gpio_b.otyper).downgrade().downgrade());
     let mut m15 = RefCell::new(gpio_b.pb7.into_push_pull_output(&mut gpio_b.moder, &mut gpio_b.otyper).downgrade().downgrade());
 
+    // rbg
+    let mut rgb = RefCell::new(gpio_c.pc13.into_push_pull_output(&mut gpio_c.moder, &mut gpio_c.otyper).downgrade().downgrade());
+
     // temporary helper for turning on all LEDs
     let mut leds_on = || {
         m0.borrow_mut().set_high().unwrap();
@@ -105,7 +116,9 @@ fn main() -> ! {
 
 
     let mut delay = Delay::new(cp.SYST, clocks);
+    */
 
+    /*
     loop {
         // turn off indicator and wait for a while
         debug_1.set_low().unwrap();
@@ -131,4 +144,55 @@ fn main() -> ! {
         delay.delay_ms(500_u16);
         // em.set_low().unwrap();
     }
+    */
+    if let (Some(p), Some(cp)) = (stm32f3xx_hal::stm32::Peripherals::take(), cortex_m::peripheral::Peripherals::take()) {
+        // Constrain clocking registers
+        let mut flash = p.FLASH.constrain();
+        let mut rcc = p.RCC.constrain();
+        let clocks = rcc.cfgr.sysclk(48.mhz()).freeze(&mut flash.acr);
+        let mut gpioc = p.GPIOC.split(&mut rcc.ahb);
+
+        /* (Re-)configure PC13 as output */
+        let ws_data_pin =
+            // cortex_m::interrupt::free(move |cs| gpioc.pc13.into_push_pull_output(cs));
+            cortex_m::interrupt::free(move |cs| gpioc.pc11.into_push_pull_output(&mut gpioc.moder, &mut gpioc.otyper));
+
+        let timer = Timer::tim1(p.TIM1, MegaHertz(3), clocks, &mut rcc.apb2);
+
+        // Get delay provider
+        let mut delay = Delay::new(cp.SYST, clocks);
+
+        let mut ws = Ws2812::new(timer, ws_data_pin);
+
+        const NUM_LEDS: usize = 1;
+        let mut data = [RGB8::default(); NUM_LEDS];
+
+        loop {
+            for j in 0..(256 * 5) {
+                for i in 0..NUM_LEDS {
+                    data[i] = wheel((((i * 256) as u16 / NUM_LEDS as u16 + j as u16) & 255) as u8);
+                }
+                ws.write(brightness(data.iter().cloned(), 32)).unwrap();
+                delay.delay_ms(5u8);
+            }
+        }
+    }
+    loop {
+        continue;
+    }
+}
+
+/// Input a value 0 to 255 to get a color value
+/// The colours are a transition r - g - b - back to r.
+fn wheel(mut wheel_pos: u8) -> RGB8 {
+    wheel_pos = 255 - wheel_pos;
+    if wheel_pos < 85 {
+        return (255 - wheel_pos * 3, 0, wheel_pos * 3).into();
+    }
+    if wheel_pos < 170 {
+        wheel_pos -= 85;
+        return (0, wheel_pos * 3, 255 - wheel_pos * 3).into();
+    }
+    wheel_pos -= 170;
+    (wheel_pos * 3, 255 - wheel_pos * 3, 0).into()
 }
