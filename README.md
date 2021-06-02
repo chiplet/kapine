@@ -60,3 +60,4 @@ This project uses components from [digikey-kicad-library](https://github.com/Dig
 | PA1                 | Debug 2            | Digital out | TBD                |
 | PA9                 | USART1_TX          | Digital out | AF7                |
 | PA10                | USART1_RX          | Digital in  | AF7                |
+| PC13                | RGB LEDs           | Digital out | TBD                |
