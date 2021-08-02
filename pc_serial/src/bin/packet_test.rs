@@ -1,3 +1,5 @@
+use kapine_packet::Packet;
+
 pub fn main() {
 
     const BUF_SIZE: usize = 261;
@@ -10,7 +12,7 @@ pub fn main() {
     payload[1] = 2;
     payload[2] = 3;
 
-    let packet_struct = pc_serial::packet::Packet {
+    let packet_struct = Packet {
         sync: 0x55AA,
         command: 0x01,
         length: 3,

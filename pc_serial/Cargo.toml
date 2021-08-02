@@ -9,3 +9,4 @@ edition = "2018"
 [dependencies]
 serialport = "4.0.1"
 crc16 = "*"
+kapine-packet = { version = "0.1.1", git = "https://github.com/chiplet/kapine-packet.git" }
