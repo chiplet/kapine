@@ -1,7 +1,9 @@
+
 mod packet {
+    use crc16::{State, MODBUS};
 
     #[derive(Debug)]
-    struct Packet {
+    pub struct Packet {
         sync: u16,
         command: u8,
         length: u8,
@@ -11,7 +13,7 @@ mod packet {
 
     impl Packet {
         // TODO: come up with a better implementation
-        fn write_bytes(&self, buffer: &mut [u8]) -> u32 {
+        pub fn write_bytes(&self, buffer: &mut [u8]) -> u32 {
 
             let mut i = 0;
             buffer[i] = self.sync as u8; i = i + 1;
@@ -20,31 +22,78 @@ mod packet {
             (self.length + 6).into()
         }
 
+        /// Computes checksum for the packet and populates the `checksum` field accordingly
         fn compute_checksum(&mut self) {
-            unimplemented!("TODO: Implement checksum computation");
+            let mut state = State::<MODBUS>::new();
+
+            state.update(&self.sync.to_le_bytes());
+            state.update(&self.command.to_le_bytes());
+            state.update(&self.length.to_le_bytes());
+            let payload_len = self.length as usize;
+            state.update(&self.payload[0..payload_len]);
+
+            self.checksum = state.get()
         }
 
-        fn new(command: u8, payload: [u8; 255]) -> Self {
+        pub fn new(command: u8, payload: &[u8]) -> Self {
             let payload_length = payload.len();
             assert!(payload_length <= 255);
+
+            let mut payload_buf = [0u8; 255];
+            for (src, dest) in payload.iter().zip(payload_buf.iter_mut()) {
+                *dest = *src;
+            }
 
             let mut packet = Packet {
                 sync: 0x55AA,
                 command: command,
                 length: payload_length as u8,
-                payload: payload,
-                checksum: 0u16, // populated by compute_checksum
+                payload: payload_buf,
+                checksum: 0u16, // populated by `compute_checksum`
             };
             packet.compute_checksum();
             packet
         }
     }
-}
 
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn sample_test() {
-        assert_eq!(2 + 2, 4);
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn new_is_correct() {
+            let payload = b"Hello, world!";
+            let command = 0x03;
+            let packet = Packet::new(command, &payload[..]);
+            assert_eq!(packet.command, command);
+
+            for i in 0..payload.len() {
+                assert_eq!(packet.payload[i], payload[i]);
+            }
+            for i in payload.len()..255 {
+                assert_eq!(packet.payload[i], 0);
+            }
+        }
+
+        #[test]
+        #[should_panic]
+        fn new_disallows_large_payloads() {
+            let too_large = [3; 256];
+            let command = 0x05;
+            let packet = Packet::new(command, &too_large[..]);
+        }
+
+        #[test]
+        fn compute_checksum() {
+            let example_bytes = [0xAA, 0x55, 0x01, 0x03, 0xAA, 0xAA, 0xAA];
+            let mut example_checksum: u16 = State::<MODBUS>::calculate(&example_bytes[..]);
+
+            let command = 0x01;
+            let payload = [0xAA, 0xAA, 0xAA];
+            let p = Packet::new(command, &payload[..]);
+
+            assert_eq!(p.checksum, example_checksum);
+        }
     }
 }
+
