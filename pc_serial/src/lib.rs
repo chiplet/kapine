@@ -15,10 +15,14 @@ pub mod packet {
         pub fn write_bytes(&self, buffer: &mut [u8]) -> u32 {
 
             let mut i = 0;
-            buffer[i] = self.sync as u8; i = i + 1;
-            buffer[i] = (self.sync >> 8) as u8; i = i + 1;
-            buffer[i] = self.command; i = i + 1;
-            buffer[i] = self.length; i = i + 1;
+            buffer[i] = self.sync as u8;
+            i = i + 1;
+            buffer[i] = (self.sync >> 8) as u8;
+            i = i + 1;
+            buffer[i] = self.command;
+            i = i + 1;
+            buffer[i] = self.length;
+            i = i + 1;
 
             let mut j = 0;
             let mut byte = self.payload[j];
@@ -29,7 +33,8 @@ pub mod packet {
                 byte = self.payload[j]
             }
 
-            buffer[i] = self.checksum as u8; i = i + 1;
+            buffer[i] = self.checksum as u8;
+            i = i + 1;
             buffer[i] = (self.checksum >> 8) as u8;
 
             (self.length + 6).into()
