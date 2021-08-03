@@ -1,5 +1,6 @@
 use std::io;
 use std::time::Duration;
+use kapine_packet::Packet;
 
 fn main() {
 
@@ -30,8 +31,17 @@ fn main() {
         Ok(mut port) => {
 
             // writing a message to the port
-            let output = "Testiviesti".as_bytes();
-            port.write(output).expect("Write failed!");
+            let payload = [1, 2, 3];
+            let message = Packet::new(5, Some(&payload));
+            const BUF_SIZE: usize = 261;
+            let mut buffer: [u8; BUF_SIZE] = [0; BUF_SIZE];
+            let length = message.write_bytes(&mut buffer) as usize;
+
+            println!("length = {}", length);
+
+            println!("Wrote bytes: {:?}", &buffer[..length]);
+            //let output = "Testiviesti".as_bytes();
+            port.write(&buffer[..length]).expect("Write failed!");
 
             let mut serial_buf: Vec<u8> = vec![0; 1000];
             println!("Receiving data on {} at {} baud:", &port_name, &baud_rate);
