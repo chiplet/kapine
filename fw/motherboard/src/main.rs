@@ -2,21 +2,26 @@
 #![no_main]
 #![no_std]
 
-use cortex_m_semihosting::{debug, hprint, hprintln};
+use cortex_m_semihosting::hprintln;
 use panic_semihosting as _;
 use nb::block;
-use rtic::app;
+use rtic::{
+    app,
+    cyccnt::{
+        // Instant,
+        U32Ext as _},
+};
 
 use stm32f3xx_hal::pac as pac;
 
 use stm32f3xx_hal::{
     prelude::*,
+    gpio::{Input, Output, PushPull, PullDown, PXx},
     serial::{
         Serial,
         Tx,
         Rx,
-        Event::Rxne
-    }
+    },
 };
 
 // Inter Process Communication (IPC) types
@@ -27,47 +32,26 @@ use heapless::{
 // interrupts
 use pac::Interrupt::{
     self,
-    USART1_EXTI25
 };
 
 use kapine_packet::Packet;
 
-const RX_BUF_SIZE: usize = 10;
-
-// UART receive FSM state
-pub enum RxState {
-    sync1,
-    sync2,
-    command,
-    length,
-    payload(u8),
-    crc1,
-    crc2
+// UART receive FSM STATE
+enum RxState {
+    Sync1,
+    Sync2,
+    Command,
+    Length,
+    Payload(u8),
+    Crc1,
+    Crc2
 }
 
-pub struct Buffer {
-    index: usize,
-    pub data: [u8; RX_BUF_SIZE],
-}
 
-impl Buffer {
-    const fn new() -> Self {
-        Buffer {
-            index: 0,
-            data: [0; RX_BUF_SIZE],
-        }
-    }
+const RX_QUEUE_LEN: usize = 512;
+const TX_QUEUE_LEN: usize = 4;
 
-    // TODO: add error handling
-    fn push(&mut self, data: u8) {
-        self.data[self.index] = data;
-        self.index += 1;
-    }
-}
-
-const RX_QUEUE_LEN: usize = 16;
-
-#[rtic::app(device = stm32f3xx_hal::pac, peripherals = true)]
+#[app(device = stm32f3xx_hal::pac, peripherals = true, monotonic = rtic::cyccnt::CYCCNT)]
 const APP: () = {
 
     struct Resources {
@@ -76,181 +60,272 @@ const APP: () = {
         #[init(RxState::sync1)]
         RX_STATE: RxState,
         RX_BUF: Packet,
-        RX_P: Producer<'static, u32, RX_QUEUE_LEN>,
-        RX_C: Consumer<'static, u32, RX_QUEUE_LEN>,
+        RX_P: Producer<'static, u8, RX_QUEUE_LEN>,
+        RX_C: Consumer<'static, u8, RX_QUEUE_LEN>,
+        TX_P: Producer<'static, Packet, TX_QUEUE_LEN>,
+        TX_C: Consumer<'static, Packet, TX_QUEUE_LEN>,
+        MAGNETS: [PXx<Output<PushPull>>; 16],
+        SENSORS: [PXx<Input<PullDown>>; 16],
     }
 
-    #[init]
+    #[init(spawn = [rx_task, tx_task, moi_task])]
     fn init(cx: init::Context) -> init::LateResources {
         // NOTE: static mutable variables must appear at the top of the function!
-        static mut Q: Queue<u32, RX_QUEUE_LEN> = Queue::new();
+        static mut Q: Queue<u8, RX_QUEUE_LEN> = Queue::new();
+        static mut TX_Q: Queue<Packet, TX_QUEUE_LEN> = Queue::new();
 
         hprintln!("init").unwrap();
 
-        let _core = cx.core;
+        let mut core = cx.core;
         let device = cx.device;
 
         let mut flash = device.FLASH.constrain();
         let mut rcc = device.RCC.constrain();
 
         // configure clocks
-        let clocks = rcc.cfgr.freeze(&mut flash.acr);
+        let clocks = rcc.cfgr
+            .use_hse(8.mhz())
+            .sysclk(72.mhz())
+            .hclk(72.mhz())
+            .freeze(&mut flash.acr);
 
-        let mut gpioa = device.GPIOA.split(&mut rcc.ahb);
+        // Initialize (enable) the monotonic timer (CYCCNT)
+        core.DCB.enable_trace();
+        core.DWT.enable_cycle_counter();
+
+        // Acquire GPIO peripherals
+        let mut gpio_a = device.GPIOA.split(&mut rcc.ahb);
+        let mut gpio_b = device.GPIOB.split(&mut rcc.ahb);
+        let mut gpio_c = device.GPIOC.split(&mut rcc.ahb);
+        let mut gpio_d = device.GPIOD.split(&mut rcc.ahb);
+        let mut _gpio_e = device.GPIOE.split(&mut rcc.ahb);
+        let mut _gpio_f = device.GPIOF.split(&mut rcc.ahb);
+        let mut _gpio_g = device.GPIOG.split(&mut rcc.ahb);
+        let mut _gpio_h = device.GPIOH.split(&mut rcc.ahb);
 
         let pins = (
-            gpioa.pa9.into_af7(&mut gpioa.moder, &mut gpioa.afrh),
-            gpioa.pa10.into_af7(&mut gpioa.moder, &mut gpioa.afrh),
+            gpio_a.pa9.into_af7(&mut gpio_a.moder, &mut gpio_a.afrh),
+            gpio_a.pa10.into_af7(&mut gpio_a.moder, &mut gpio_a.afrh),
         );
-        let mut serial = Serial::usart1(device.USART1, pins, 9600.bps(), clocks, &mut rcc.apb2);
+        let mut serial = Serial::usart1(device.USART1, pins, 115_200.bps(), clocks, &mut rcc.apb2);
         serial.listen(stm32f3xx_hal::serial::Event::Rxne);
 
+        // electromagnet outputs
+        let mut MAGNETS: [PXx<Output<PushPull>>; 16] = [
+            gpio_b.pb5.into_push_pull_output(&mut gpio_b.moder, &mut gpio_b.otyper).downgrade().downgrade(),
+            gpio_d.pd2.into_push_pull_output(&mut gpio_d.moder, &mut gpio_d.otyper).downgrade().downgrade(),
+            gpio_c.pc11.into_push_pull_output(&mut gpio_c.moder, &mut gpio_c.otyper).downgrade().downgrade(),
+            gpio_a.pa12.into_push_pull_output(&mut gpio_a.moder, &mut gpio_a.otyper).downgrade().downgrade(),
+            gpio_a.pa8.into_push_pull_output(&mut gpio_a.moder, &mut gpio_a.otyper).downgrade().downgrade(),
+            gpio_c.pc8.into_push_pull_output(&mut gpio_c.moder, &mut gpio_c.otyper).downgrade().downgrade(),
+            gpio_c.pc6.into_push_pull_output(&mut gpio_c.moder, &mut gpio_c.otyper).downgrade().downgrade(),
+            gpio_b.pb14.into_push_pull_output(&mut gpio_b.moder, &mut gpio_b.otyper).downgrade().downgrade(),
+            gpio_b.pb11.into_push_pull_output(&mut gpio_b.moder, &mut gpio_b.otyper).downgrade().downgrade(),
+            gpio_b.pb2.into_push_pull_output(&mut gpio_b.moder, &mut gpio_b.otyper).downgrade().downgrade(),
+            gpio_c.pc5.into_push_pull_output(&mut gpio_c.moder, &mut gpio_c.otyper).downgrade().downgrade(),
+            gpio_a.pa3.into_push_pull_output(&mut gpio_a.moder, &mut gpio_a.otyper).downgrade().downgrade(),
+            gpio_c.pc3.into_push_pull_output(&mut gpio_c.moder, &mut gpio_c.otyper).downgrade().downgrade(),
+            gpio_c.pc1.into_push_pull_output(&mut gpio_c.moder, &mut gpio_c.otyper).downgrade().downgrade(),
+            gpio_b.pb9.into_push_pull_output(&mut gpio_b.moder, &mut gpio_b.otyper).downgrade().downgrade(),
+            gpio_b.pb7.into_push_pull_output(&mut gpio_b.moder, &mut gpio_b.otyper).downgrade().downgrade(),
+        ];
+
+        for magnet in &mut MAGNETS {
+            (*magnet).set_low().expect("could not turn magnet off at startup");
+        }
+
+        // photo-gate sensor inputs
+        // enable EXTIx for x in {0, 1, 2, 4, 6, 7, 8, 9, 10, 11, 12, 13, 15}
+        let SENSORS: [PXx<Input<PullDown>>; 16] = [
+            gpio_b.pb4.into_pull_down_input(&mut gpio_b.moder, &mut gpio_b.pupdr).downgrade().downgrade(),  // EXTI4
+            gpio_c.pc12.into_pull_down_input(&mut gpio_c.moder, &mut gpio_c.pupdr).downgrade().downgrade(), // 12
+            gpio_c.pc10.into_pull_down_input(&mut gpio_c.moder, &mut gpio_c.pupdr).downgrade().downgrade(), // 10
+            gpio_a.pa11.into_pull_down_input(&mut gpio_a.moder, &mut gpio_a.pupdr).downgrade().downgrade(), //
+            gpio_c.pc9.into_pull_down_input(&mut gpio_c.moder, &mut gpio_c.pupdr).downgrade().downgrade(), //
+            gpio_c.pc7.into_pull_down_input(&mut gpio_c.moder, &mut gpio_c.pupdr).downgrade().downgrade(), //
+            gpio_b.pb15.into_pull_down_input(&mut gpio_b.moder, &mut gpio_b.pupdr).downgrade().downgrade(), //
+            gpio_b.pb13.into_pull_down_input(&mut gpio_b.moder, &mut gpio_b.pupdr).downgrade().downgrade(), //
+            gpio_b.pb10.into_pull_down_input(&mut gpio_b.moder, &mut gpio_b.pupdr).downgrade().downgrade(), //
+            gpio_b.pb1.into_pull_down_input(&mut gpio_b.moder, &mut gpio_b.pupdr).downgrade().downgrade(), //
+            gpio_c.pc4.into_pull_down_input(&mut gpio_c.moder, &mut gpio_c.pupdr).downgrade().downgrade(), //
+            gpio_a.pa2.into_pull_down_input(&mut gpio_a.moder, &mut gpio_a.pupdr).downgrade().downgrade(), //
+            gpio_c.pc2.into_pull_down_input(&mut gpio_c.moder, &mut gpio_c.pupdr).downgrade().downgrade(), //
+            gpio_c.pc0.into_pull_down_input(&mut gpio_c.moder, &mut gpio_c.pupdr).downgrade().downgrade(), //
+            gpio_b.pb8.into_pull_down_input(&mut gpio_b.moder, &mut gpio_b.pupdr).downgrade().downgrade(), //
+            gpio_b.pb6.into_pull_down_input(&mut gpio_b.moder, &mut gpio_b.pupdr).downgrade().downgrade(), //
+        ];
+
         let (tx, rx) = serial.split();
-
-        let dma1 = device.DMA1.split(&mut rcc.ahb);
-        // DMA channel selection depends on the peripheral:
-        // - USART1: TX = 4, RX = 5
-        // - USART2: TX = 6, RX = 7
-        // - USART3: TX = 3, RX = 2
-        let (tx_channel, rx_channel) = (dma1.ch4, dma1.ch5);
-
 
         rtic::pend(Interrupt::USART1_EXTI25);
 
         // init empty receive Packet structu
         let payload = [0u8; 255];
-        let packet = Packet::new(0u8, Some(&payload));
+        let packet = Packet::from(0u8, Some(&payload));
 
         let (RX_P, RX_C) = Q.split();
+        let (TX_P, TX_C) = TX_Q.split();
+
+        // spawn software tasks
+        cx.spawn.tx_task().unwrap();
+        cx.spawn.rx_task().unwrap();
 
         init::LateResources {
             TX: tx,
             RX: rx,
             RX_BUF: packet,
             RX_P,
-            RX_C
+            RX_C,
+            TX_P,
+            TX_C,
+            MAGNETS,
+            SENSORS,
         }
     }
 
-    /*
-    #[idle( resources = [TX, RX_BUF, RX_C] )]
-    fn idle(mut cx: idle::Context) -> ! {
-        // rtic::pend(Interrupt::USART1_EXTI25);
+    // reads a packet from the tx queue and transmits it over serial
+    #[task(schedule = [tx_task], priority = 3, resources = [TX, TX_C])]
+    fn tx_task(cx: tx_task::Context) {
+        // TODO: make tx_buf length a constant in kapine-packet
+        let mut tx_buf = [0u8; 261];
 
+        if let Some(packet) = cx.resources.TX_C.dequeue() {
+            let length: usize = packet.write_bytes(&mut tx_buf[..]) as usize;
+
+            for byte in tx_buf[..length].iter() {
+                block!(cx.resources.TX.write(*byte)).unwrap();
+                block!(cx.resources.TX.flush()).unwrap();
+            }
+        }
+
+        cx.schedule.tx_task(cx.scheduled + 80_000.cycles()).unwrap();
+    }
+
+    #[task(priority = 2, resources = [TX_P])]
+    fn moi_task(mut cx: moi_task::Context) {
+        cx.resources.TX_P.lock(|TX_P| {
+            TX_P.enqueue(Packet::from(3, Some(b"jee :D"))).unwrap();
+        });
+    }
+
+    #[idle(spawn = [moi_task])]
+    fn idle(_cx: idle::Context) -> ! {
         hprintln!("idle").unwrap();
-
-        loop {
-            let mut payload = [0u8; 255];
-            let mut buf_local = Packet::new(0u8, Some(&payload));
-
-            cx.resources.RX_BUF.lock(|RX_BUF| {
-                // manually clone all RX_BUF fields
-                buf_local.sync = RX_BUF.sync;
-                buf_local.command = RX_BUF.command;
-                buf_local.length = RX_BUF.length;
-                buf_local.checksum = RX_BUF.checksum;
-                for (src, dest) in RX_BUF.payload.iter().zip(buf_local.payload.iter_mut()) {
-                    *dest = *src;
-                }
-            });
-            // hprint!("{:?} ", buf_local).unwrap();
-        }
+        loop {}
     }
-    */
 
-
-    /* tx example
-    for c in b"rx buffer overrun error\r\n" {
-        block!(cx.resources.TX.write(*c)).ok();
-    }
-    */
-
-
-    // TODO: move FSM logic out of receive interrupt, this should only push the raw received bytes
-    // into a FIFO or other similar IPC structure. Then it's possible to create a rx task for the
-    // packet deserialisation.
-    #[task(binds = USART1_EXTI25, priority = 2, resources=[RX,RX_STATE,RX_BUF,TX,RX_P])]
+    // Move received byte into serial receive queue
+    // TODO: remove panicing once serial communications are reliable enough
+    #[task(binds = USART1_EXTI25, spawn = [rx_task], priority = 5, resources = [RX, RX_P])]
     fn usart1(cx: usart1::Context) {
-        let state: &mut RxState = cx.resources.RX_STATE;
-        let rx_buf: &mut Packet = cx.resources.RX_BUF;
-         
-        let rx_byte: Option<u8> = match cx.resources.RX.read() {
+        match cx.resources.RX.read() {
             Ok(c) => {
-                Some(c)
-                // cx.resources.RX_BUF.push(c);
+                cx.resources.RX_P.enqueue(c).expect("serial rx queue overflow");
+                // TODO: remove??
+                // cx.spawn.rx_task().unwrap();
             }
             Err(e) => {
                 match e {
-                    nb::Error::WouldBlock => None, // no data available
+                    nb::Error::WouldBlock => (), // no data available
                     nb::Error::Other(stm32f3xx_hal::serial::Error::Overrun) => panic!("rx buffer overrun"),
                     _ => panic!("{:?}", e),
                 }
             }
         };
+    }
 
-        // only mutate receiver state if a new byte was received
-        if let Some(rx_byte) = rx_byte {
+    #[task(schedule = [rx_task], priority = 4, resources = [RX_C, TX_P])]
+    fn rx_task(cx: rx_task::Context) {
+        static mut STATE: RxState = RxState::Sync1;
+        static mut PACKET: Packet = Packet::new();
+        static mut PAYLOAD_BUF: [u8; 255] = [0u8; 255];
 
-            // state machine logic
-            match state {
-                RxState::sync1 => {
-                    match rx_byte {
-                        0xAA => *state = RxState::sync2,
-                        _ => *state = RxState::sync1,
+        
+
+        if let Some(byte) = cx.resources.RX_C.dequeue() {
+
+            // cx.resources.TX_P.enqueue(Packet::from(3, Some(b"0")));
+
+            // packet receive STATE machine
+            match STATE {
+                RxState::Sync1 => {
+                    match byte {
+                        0xAA => *STATE = RxState::Sync2,
+                        _ => *STATE = RxState::Sync1,
                     }
                 },
-                RxState::sync2 => {
-                    match rx_byte {
-                        0x55 => *state = RxState::command,
-                        _ => *state = RxState::sync1,
+                RxState::Sync2 => {
+                    match byte {
+                        0x55 => *STATE = RxState::Command,
+                        _ => *STATE = RxState::Sync1,
                     }
                 },
-                RxState::command => {
-                    *state = RxState::length;
+                RxState::Command => {
+                    *STATE = RxState::Length;
 
-                    rx_buf.command = rx_byte;
+                    PACKET.command = byte;
                 },
-                RxState::length => {
-                    *state = RxState::payload(rx_byte);
+                RxState::Length => {
+                    match byte {
+                        0 => {
+                            *STATE = RxState::Crc1;
+                        },
+                        _ => {
+                            *STATE = RxState::Payload(byte-1);
+                            PACKET.payload = None;
+                        },
+                    }
 
-                    rx_buf.length = rx_byte;
-
+                    PACKET.length = byte;
                 },
-                RxState::payload(i) => {
+                RxState::Payload(i) => {
                     // FIXME: something strange going on here with borrowing
                     // TODO: come up with something simpler
                     let i: u8 = *i; 
                     match i {
-                        0 => *state = RxState::crc1,
-                        _ => *state = RxState::payload(i-1),
+                        0 => *STATE = RxState::Crc1,
+                        _ => *STATE = RxState::Payload(i-1),
                     }
 
-                    if i != 0 {
-                        rx_buf.payload.unwrap()[(255 - i) as usize] = rx_byte;
-
-                        for c in b"length!\r\n" {
-                            block!(cx.resources.TX.write(*c)).ok();
-                        }
+                    PAYLOAD_BUF[(PACKET.length - 1 - i) as usize] = byte;
+                    if i == 0 {
+                        PACKET.payload = Some(*PAYLOAD_BUF);
                     }
                 },
-                RxState::crc1 => {
-                    *state = RxState::crc2;
+                RxState::Crc1 => {
+                    *STATE = RxState::Crc2;
 
-                    rx_buf.checksum = 0u16;
-                    rx_buf.checksum |= rx_byte as u16;
+                    PACKET.checksum = 0u16;
+                    PACKET.checksum |= byte as u16;
                 },
-                RxState::crc2 => {
-                    *state = RxState::sync1;
+                RxState::Crc2 => {
+                    *STATE = RxState::Sync1;
 
-                    rx_buf.checksum |= (rx_byte as u16) << 8;
-                    // TODO: push packet to relevant queue
+                    PACKET.checksum |= (byte as u16) << 8;
 
-                    for c in b"received!\r\n" {
-                        block!(cx.resources.TX.write(*c)).ok();
-                    }
+                    // TODO: remove panicing
+                    *PACKET = PACKET.validate().expect("invalid checksum");
+
+                    cx.resources.TX_P.enqueue(*PACKET).expect("could not push to tx channel");
                 }
             }
         }
+
+        // bytes arriving at 14_400 Hz
+        cx.schedule.rx_task(cx.scheduled + 5_000.cycles()).unwrap();
     }
 
+    // unused interrupts used to schedule software tasks
+    extern "C" {
+        fn USB_HP();
+        fn USB_LP();
+        fn USB_WKUP_EXTI();
+        fn TIM20_BRK();
+        fn TIM20_UP();
+        fn TIM20_TRG_COM();
+        fn TIM20_CC();
+        fn SPI4();
+        fn I2C3_ER();
+        fn I2C3_EV();
+    }
 };
