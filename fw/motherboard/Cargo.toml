@@ -18,7 +18,8 @@ cortex-m-rtic = "0.5.7"
 heapless = "0.7.3"
 
 [dependencies.stm32f3xx-hal]
-version = "0.6.1"
+git = "https://github.com/stm32-rs/stm32f3xx-hal"
+rev = "937f4fa904fdddf0ae1dbdf85dbfdf25483b74f7"
 features = ["rt", "stm32f303xe"]
 
 

@@ -8,7 +8,7 @@ use nb::block;
 use rtic::{
     app,
     cyccnt::{
-        // Instant,
+        Instant,
         U32Ext as _},
 };
 
@@ -16,8 +16,14 @@ use stm32f3xx_hal::pac as pac;
 
 use stm32f3xx_hal::{
     prelude::*,
-    gpio::{Input, Output, PushPull, PullDown, PXx},
+    Toggle,
+    gpio::{
+        Edge,
+        Input, Output, PushPull,
+        PXx, PA9, PA10, AF7
+    },
     serial::{
+        self,
         Serial,
         Tx,
         Rx,
@@ -50,13 +56,21 @@ enum RxState {
 
 const RX_QUEUE_LEN: usize = 512;
 const TX_QUEUE_LEN: usize = 4;
+const SENSOR_LUT: [usize; 16] = [13, 9, 11, 2, 0, 12, 15, 5, 14, 4, 8, 3, 1, 7, 10, 6];
+
+fn sensor_handler(index: usize, magnets: &mut [PXx<Output<PushPull>>]) {
+    for magnet in magnets.iter_mut() {
+        magnet.set_low().unwrap();
+    }
+    magnets[index+1 % 16].set_high().unwrap();
+}
 
 #[app(device = stm32f3xx_hal::pac, peripherals = true, monotonic = rtic::cyccnt::CYCCNT)]
 const APP: () = {
 
     struct Resources {
-        TX: Tx<pac::USART1>,
-        RX: Rx<pac::USART1>,
+        TX: Tx<pac::USART1, PA9<AF7<PushPull>>>,
+        RX: Rx<pac::USART1, PA10<AF7<PushPull>>>,
         #[init(RxState::sync1)]
         RX_STATE: RxState,
         RX_BUF: Packet,
@@ -65,7 +79,7 @@ const APP: () = {
         TX_P: Producer<'static, Packet, TX_QUEUE_LEN>,
         TX_C: Consumer<'static, Packet, TX_QUEUE_LEN>,
         MAGNETS: [PXx<Output<PushPull>>; 16],
-        SENSORS: [PXx<Input<PullDown>>; 16],
+        SENSORS: [PXx<Input>; 16],
     }
 
     #[init(spawn = [rx_task, tx_task, moi_task])]
@@ -81,12 +95,16 @@ const APP: () = {
 
         let mut flash = device.FLASH.constrain();
         let mut rcc = device.RCC.constrain();
+        let mut exti = device.EXTI;
+        let mut syscfg = device.SYSCFG.constrain(&mut rcc.apb2);
 
         // configure clocks
         let clocks = rcc.cfgr
-            .use_hse(8.mhz())
-            .sysclk(72.mhz())
-            .hclk(72.mhz())
+            .use_hse(8.MHz())
+            .sysclk(72.MHz())
+            .hclk(72.MHz())
+            .pclk1(36.MHz())
+            .pclk2(72.MHz())
             .freeze(&mut flash.acr);
 
         // Initialize (enable) the monotonic timer (CYCCNT)
@@ -104,11 +122,12 @@ const APP: () = {
         let mut _gpio_h = device.GPIOH.split(&mut rcc.ahb);
 
         let pins = (
-            gpio_a.pa9.into_af7(&mut gpio_a.moder, &mut gpio_a.afrh),
-            gpio_a.pa10.into_af7(&mut gpio_a.moder, &mut gpio_a.afrh),
+            gpio_a.pa9.into_af7_push_pull(&mut gpio_a.moder, &mut gpio_a.otyper, &mut gpio_a.afrh),
+            gpio_a.pa10.into_af7_push_pull(&mut gpio_a.moder, &mut gpio_a.otyper, &mut gpio_a.afrh),
         );
-        let mut serial = Serial::usart1(device.USART1, pins, 115_200.bps(), clocks, &mut rcc.apb2);
-        serial.listen(stm32f3xx_hal::serial::Event::Rxne);
+        let mut serial = Serial::new(device.USART1, pins, 115_200.Bd(), clocks, &mut rcc.apb2);
+        // serial.listen(stm32f3xx_hal::serial::Event::Rxne);
+        serial.configure_interrupt(serial::Event::ReceiveDataRegisterNotEmpty, Toggle::On);
 
         // electromagnet outputs
         let mut MAGNETS: [PXx<Output<PushPull>>; 16] = [
@@ -123,7 +142,7 @@ const APP: () = {
             gpio_b.pb11.into_push_pull_output(&mut gpio_b.moder, &mut gpio_b.otyper).downgrade().downgrade(),
             gpio_b.pb2.into_push_pull_output(&mut gpio_b.moder, &mut gpio_b.otyper).downgrade().downgrade(),
             gpio_c.pc5.into_push_pull_output(&mut gpio_c.moder, &mut gpio_c.otyper).downgrade().downgrade(),
-            gpio_a.pa3.into_push_pull_output(&mut gpio_a.moder, &mut gpio_a.otyper).downgrade().downgrade(),
+            gpio_a.pa4.into_push_pull_output(&mut gpio_a.moder, &mut gpio_a.otyper).downgrade().downgrade(), // m11 (bodge)
             gpio_c.pc3.into_push_pull_output(&mut gpio_c.moder, &mut gpio_c.otyper).downgrade().downgrade(),
             gpio_c.pc1.into_push_pull_output(&mut gpio_c.moder, &mut gpio_c.otyper).downgrade().downgrade(),
             gpio_b.pb9.into_push_pull_output(&mut gpio_b.moder, &mut gpio_b.otyper).downgrade().downgrade(),
@@ -131,29 +150,39 @@ const APP: () = {
         ];
 
         for magnet in &mut MAGNETS {
-            (*magnet).set_low().expect("could not turn magnet off at startup");
+            magnet.set_low().expect("could not turn magnet off at startup");
         }
+
 
         // photo-gate sensor inputs
         // enable EXTIx for x in {0, 1, 2, 4, 6, 7, 8, 9, 10, 11, 12, 13, 15}
-        let SENSORS: [PXx<Input<PullDown>>; 16] = [
-            gpio_b.pb4.into_pull_down_input(&mut gpio_b.moder, &mut gpio_b.pupdr).downgrade().downgrade(),  // EXTI4
-            gpio_c.pc12.into_pull_down_input(&mut gpio_c.moder, &mut gpio_c.pupdr).downgrade().downgrade(), // 12
-            gpio_c.pc10.into_pull_down_input(&mut gpio_c.moder, &mut gpio_c.pupdr).downgrade().downgrade(), // 10
-            gpio_a.pa11.into_pull_down_input(&mut gpio_a.moder, &mut gpio_a.pupdr).downgrade().downgrade(), //
-            gpio_c.pc9.into_pull_down_input(&mut gpio_c.moder, &mut gpio_c.pupdr).downgrade().downgrade(), //
-            gpio_c.pc7.into_pull_down_input(&mut gpio_c.moder, &mut gpio_c.pupdr).downgrade().downgrade(), //
-            gpio_b.pb15.into_pull_down_input(&mut gpio_b.moder, &mut gpio_b.pupdr).downgrade().downgrade(), //
-            gpio_b.pb13.into_pull_down_input(&mut gpio_b.moder, &mut gpio_b.pupdr).downgrade().downgrade(), //
-            gpio_b.pb10.into_pull_down_input(&mut gpio_b.moder, &mut gpio_b.pupdr).downgrade().downgrade(), //
-            gpio_b.pb1.into_pull_down_input(&mut gpio_b.moder, &mut gpio_b.pupdr).downgrade().downgrade(), //
-            gpio_c.pc4.into_pull_down_input(&mut gpio_c.moder, &mut gpio_c.pupdr).downgrade().downgrade(), //
-            gpio_a.pa2.into_pull_down_input(&mut gpio_a.moder, &mut gpio_a.pupdr).downgrade().downgrade(), //
-            gpio_c.pc2.into_pull_down_input(&mut gpio_c.moder, &mut gpio_c.pupdr).downgrade().downgrade(), //
-            gpio_c.pc0.into_pull_down_input(&mut gpio_c.moder, &mut gpio_c.pupdr).downgrade().downgrade(), //
-            gpio_b.pb8.into_pull_down_input(&mut gpio_b.moder, &mut gpio_b.pupdr).downgrade().downgrade(), //
-            gpio_b.pb6.into_pull_down_input(&mut gpio_b.moder, &mut gpio_b.pupdr).downgrade().downgrade(), //
+        // required 3, 5, 14
+        let mut SENSORS: [PXx<Input>; 16] = [
+            gpio_b.pb4.into_pull_up_input(&mut gpio_b.moder, &mut gpio_b.pupdr).downgrade().downgrade(),
+            gpio_c.pc12.into_pull_up_input(&mut gpio_c.moder, &mut gpio_c.pupdr).downgrade().downgrade(),
+            gpio_a.pa3.into_pull_up_input(&mut gpio_a.moder, &mut gpio_a.pupdr).downgrade().downgrade(), // s2 (bodge)
+            gpio_a.pa11.into_pull_up_input(&mut gpio_a.moder, &mut gpio_a.pupdr).downgrade().downgrade(),
+            gpio_c.pc9.into_pull_up_input(&mut gpio_c.moder, &mut gpio_c.pupdr).downgrade().downgrade(),
+            gpio_c.pc7.into_pull_up_input(&mut gpio_c.moder, &mut gpio_c.pupdr).downgrade().downgrade(),
+            gpio_b.pb15.into_pull_up_input(&mut gpio_b.moder, &mut gpio_b.pupdr).downgrade().downgrade(),
+            gpio_b.pb13.into_pull_up_input(&mut gpio_b.moder, &mut gpio_b.pupdr).downgrade().downgrade(),
+            gpio_b.pb10.into_pull_up_input(&mut gpio_b.moder, &mut gpio_b.pupdr).downgrade().downgrade(),
+            gpio_b.pb1.into_pull_up_input(&mut gpio_b.moder, &mut gpio_b.pupdr).downgrade().downgrade(),
+            gpio_c.pc14.into_pull_up_input(&mut gpio_c.moder, &mut gpio_c.pupdr).downgrade().downgrade(), // s10 (bodge)
+            gpio_a.pa2.into_pull_up_input(&mut gpio_a.moder, &mut gpio_a.pupdr).downgrade().downgrade(),
+            gpio_a.pa5.into_pull_up_input(&mut gpio_a.moder, &mut gpio_a.pupdr).downgrade().downgrade(), // s12 (bodge)
+            gpio_c.pc0.into_pull_up_input(&mut gpio_c.moder, &mut gpio_c.pupdr).downgrade().downgrade(),
+            gpio_b.pb8.into_pull_up_input(&mut gpio_b.moder, &mut gpio_b.pupdr).downgrade().downgrade(),
+            gpio_b.pb6.into_pull_up_input(&mut gpio_b.moder, &mut gpio_b.pupdr).downgrade().downgrade(),
         ];
+
+
+        // enable sensor interrupts
+        for sensor in &mut SENSORS {
+            sensor.trigger_on_edge(&mut exti, Edge::Falling);
+            syscfg.select_exti_interrupt_source(sensor);
+            sensor.enable_interrupt(&mut exti);
+        }
 
         let (tx, rx) = serial.split();
 
@@ -212,6 +241,27 @@ const APP: () = {
     fn idle(_cx: idle::Context) -> ! {
         hprintln!("idle").unwrap();
         loop {}
+    }
+
+    // shut all magnets of immediately
+    #[task(priority = 6, resources = [MAGNETS])]
+    fn kill_magnets(cx: kill_magnets::Context) {
+        for magnet in cx.resources.MAGNETS.iter_mut() {
+            magnet.set_low().ok(); // continue shutting off magnets even if one `set_low` call fails
+        }
+    }
+
+    // TODO: start/reset kill_magnets timer
+    // TODO: write a macro for this... and call it in a loop :D
+    #[task(binds = EXTI0, schedule = [kill_magnets], priority = 4, resources = [SENSORS, MAGNETS])]
+    fn exti0_handler(mut cx: exti0_handler::Context) {
+        cx.resources.MAGNETS.lock(|MAGNETS| { sensor_handler(SENSOR_LUT[0], MAGNETS) });
+        cx.resources.SENSORS[SENSOR_LUT[0]].clear_interrupt();
+    }
+    #[task(binds = EXTI1, schedule = [kill_magnets], priority = 4, resources = [SENSORS, MAGNETS])]
+    fn exti1_handler(mut cx: exti1_handler::Context) {
+        cx.resources.MAGNETS.lock(|MAGNETS| { sensor_handler(SENSOR_LUT[1], MAGNETS) });
+        cx.resources.SENSORS[SENSOR_LUT[1]].clear_interrupt();
     }
 
     // Move received byte into serial receive queue
