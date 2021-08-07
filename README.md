@@ -35,13 +35,13 @@ This project uses components from [digikey-kicad-library](https://github.com/Dig
 | PB11                | m8                 | Digital out | TBD                |
 | PB2                 | m9                 | Digital out | TBD                |
 | PC5                 | m10                | Digital out | TBD                |
-| PA3                 | m11                | Digital out | TBD                |
+| ~~PA3~~ PA4         | m11                | Digital out | TBD                |
 | PC3                 | m12                | Digital out | TBD                |
 | PC1                 | m13                | Digital out | TBD                |
 | PB9                 | m14                | Digital out | TBD                |
 | PB7                 | m15                | Digital out | TBD                |
 | PB4                 | s0                 | Digital in  | TBD                |
-| PC12                | s1                 | Digital in  | TBD                |
+| ~~PC12~~ PA3        | s1                 | Digital in  | TBD                |
 | PC10                | s2                 | Digital in  | TBD                |
 | PA11                | s3                 | Digital in  | TBD                |
 | PC9                 | s4                 | Digital in  | TBD                |
@@ -50,9 +50,9 @@ This project uses components from [digikey-kicad-library](https://github.com/Dig
 | PB13                | s7                 | Digital in  | TBD                |
 | PB10                | s8                 | Digital in  | TBD                |
 | PB1                 | s9                 | Digital in  | TBD                |
-| PC4                 | s10                | Digital in  | TBD                |
+| ~~PC4~~ PC14        | s10                | Digital in  | TBD                |
 | PA2                 | s11                | Digital in  | TBD                |
-| PC2                 | s12                | Digital in  | TBD                |
+| ~~PC2~~ PA5         | s12                | Digital in  | TBD                |
 | PC0                 | s13                | Digital in  | TBD                |
 | PB8                 | s14                | Digital in  | TBD                |
 | PB6                 | s15                | Digital in  | TBD                |
@@ -61,3 +61,10 @@ This project uses components from [digikey-kicad-library](https://github.com/Dig
 | PA9                 | USART1_TX          | Digital out | AF7                |
 | PA10                | USART1_RX          | Digital in  | AF7                |
 | PC13                | RGB LEDs           | Digital out | TBD                |
+
+### Change Log
+* 2021-08-07: STM32F3 maps GPIO to EXTI interrupts based on pin number. The following changes needed to be made to support interrupts on all sensor input pins:
+  * m11 (PA3 -> PA4)
+  * s2 (PC10 -> PA3)
+  * s12 (PC2 -> PA5)
+  * s10 (PC4 -> PC14)
