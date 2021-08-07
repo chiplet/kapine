@@ -13,10 +13,13 @@ use rtic::{
 };
 
 use stm32f3xx_hal::pac as pac;
-
 use stm32f3xx_hal::{
     prelude::*,
     Toggle,
+    timer::{
+        Timer,
+        Event,
+    },
     gpio::{
         Edge,
         Input, Output, PushPull,
@@ -36,8 +39,9 @@ use heapless::{
 };
 
 // interrupts
-use pac::Interrupt::{
-    self,
+use pac::{
+    Interrupt,
+    TIM2,
 };
 
 use kapine_packet::Packet;
@@ -58,7 +62,7 @@ const RX_QUEUE_LEN: usize = 512;
 const TX_QUEUE_LEN: usize = 4;
 const SENSOR_LUT: [usize; 16] = [13, 9, 11, 2, 0, 12, 15, 5, 14, 4, 8, 3, 1, 7, 10, 6];
 
-fn sensor_handler(index: usize, magnets: &mut [PXx<Output<PushPull>>]) {
+fn sensor_handler(index: usize, magnets: &mut [PXx<Output<PushPull>>], timer: &mut Timer<TIM2>) {
     for magnet in magnets.iter_mut() {
         magnet.set_low().unwrap();
     }
@@ -68,6 +72,7 @@ fn sensor_handler(index: usize, magnets: &mut [PXx<Output<PushPull>>]) {
         index = 15;
     }
     magnets[index as usize].set_high().unwrap();
+    timer.start(2.Hz());
 }
 
 #[app(device = stm32f3xx_hal::pac, peripherals = true, monotonic = rtic::cyccnt::CYCCNT)]
@@ -85,6 +90,7 @@ const APP: () = {
         TX_C: Consumer<'static, Packet, TX_QUEUE_LEN>,
         MAGNETS: [PXx<Output<PushPull>>; 16],
         SENSORS: [PXx<Input>; 16],
+        TIMER: Timer<TIM2>,
     }
 
 
@@ -201,6 +207,10 @@ const APP: () = {
         let (RX_P, RX_C) = Q.split();
         let (TX_P, TX_C) = TX_Q.split();
 
+        let mut TIMER = Timer::tim2(device.TIM2, 2.Hz(), clocks, &mut rcc.apb1);
+        TIMER.enable_interrupt(Event::Update);
+        TIMER.stop();
+
         // spawn software tasks
         cx.spawn.tx_task().unwrap();
         cx.spawn.rx_task().unwrap();
@@ -215,6 +225,7 @@ const APP: () = {
             TX_C,
             MAGNETS,
             SENSORS,
+            TIMER,    
         }
     }
 
@@ -250,75 +261,87 @@ const APP: () = {
     }
 
     // shut all magnets of immediately
-    #[task(priority = 6, resources = [MAGNETS])]
+    #[task(binds = TIM2, priority = 6, resources = [TIMER, MAGNETS])]
     fn kill_magnets(cx: kill_magnets::Context) {
-        for magnet in cx.resources.MAGNETS.iter_mut() {
-            magnet.set_low().ok(); // continue shutting off magnets even if one `set_low` call fails
+        if cx.resources.TIMER.is_event_triggered(Event::Update) {
+            cx.resources.TIMER.stop();
+            cx.resources.TIMER.clear_events();
+            for magnet in cx.resources.MAGNETS.iter_mut() {
+                magnet.set_low().ok(); // continue shutting off magnets even if one `set_low` call fails
+            }
         }
     }
 
+
     // TODO: start/reset kill_magnets timer
     // TODO: write a macro for this... and call it in a loop :D
-    // #[task(binds = EXTI0, schedule = [kill_magnets], priority = 4, resources = [SENSORS, MAGNETS])]
+    // #[task(binds = EXTI0,  priority = 4, resources = [SENSORS, MAGNETS])]
     // fn exti0_handler(mut cx: exti0_handler::Context) {
     //     cx.resources.MAGNETS.lock(|MAGNETS| { sensor_handler(SENSOR_LUT[0], MAGNETS) });
     //     cx.resources.SENSORS[SENSOR_LUT[0]].clear_interrupt();
     // }
-    #[task(binds = EXTI0, schedule = [kill_magnets], priority = 4, resources = [SENSORS, MAGNETS])]
+    #[task(binds = EXTI0, priority = 4, resources = [SENSORS, MAGNETS, TIMER])]
     fn exti0_handler(mut cx: exti0_handler::Context) {
+        let mut timer = cx.resources.TIMER;
         cx.resources.MAGNETS.lock(|MAGNETS| {
-            sensor_handler(SENSOR_LUT[0], MAGNETS)
+            timer.lock(|timer| { sensor_handler(SENSOR_LUT[0], MAGNETS, timer) });
         });
         cx.resources.SENSORS[SENSOR_LUT[0]].clear_interrupt();
     }
-    #[task(binds = EXTI1, schedule = [kill_magnets], priority = 4, resources = [SENSORS, MAGNETS])]
+    #[task(binds = EXTI1, priority = 4, resources = [SENSORS, MAGNETS, TIMER])]
     fn exti1_handler(mut cx: exti1_handler::Context) {
+        let mut timer = cx.resources.TIMER;
         cx.resources.MAGNETS.lock(|MAGNETS| {
-            sensor_handler(SENSOR_LUT[1], MAGNETS)
+            timer.lock(|timer| { sensor_handler(SENSOR_LUT[1], MAGNETS, timer) });
         });
         cx.resources.SENSORS[SENSOR_LUT[1]].clear_interrupt();
     }
-    #[task(binds = EXTI2_TSC, schedule = [kill_magnets], priority = 4, resources = [SENSORS, MAGNETS])]
+    #[task(binds = EXTI2_TSC, priority = 4, resources = [SENSORS, MAGNETS, TIMER])]
     fn exti2_handler(mut cx: exti2_handler::Context) {
+        let mut timer = cx.resources.TIMER;
         cx.resources.MAGNETS.lock(|MAGNETS| {
-            sensor_handler(SENSOR_LUT[2], MAGNETS)
+            timer.lock(|timer| { sensor_handler(SENSOR_LUT[2], MAGNETS, timer) });
         });
         cx.resources.SENSORS[SENSOR_LUT[2]].clear_interrupt();
     }
-    #[task(binds = EXTI3, schedule = [kill_magnets], priority = 4, resources = [SENSORS, MAGNETS])]
+    #[task(binds = EXTI3, priority = 4, resources = [SENSORS, MAGNETS, TIMER])]
     fn exti3_handler(mut cx: exti3_handler::Context) {
+        let mut timer = cx.resources.TIMER;
         cx.resources.MAGNETS.lock(|MAGNETS| {
-            sensor_handler(SENSOR_LUT[3], MAGNETS)
+            timer.lock(|timer| { sensor_handler(SENSOR_LUT[3], MAGNETS, timer) });
         });
         cx.resources.SENSORS[SENSOR_LUT[3]].clear_interrupt();
     }
-    #[task(binds = EXTI4, schedule = [kill_magnets], priority = 4, resources = [SENSORS, MAGNETS])]
+    #[task(binds = EXTI4, priority = 4, resources = [SENSORS, MAGNETS, TIMER])]
     fn exti4_handler(mut cx: exti4_handler::Context) {
+        let mut timer = cx.resources.TIMER;
         cx.resources.MAGNETS.lock(|MAGNETS| {
-            sensor_handler(SENSOR_LUT[4], MAGNETS)
+            timer.lock(|timer| { sensor_handler(SENSOR_LUT[4], MAGNETS, timer) });
         });
         cx.resources.SENSORS[SENSOR_LUT[4]].clear_interrupt();
     }
-    #[task(binds = EXTI9_5, schedule = [kill_magnets], priority = 4, resources = [SENSORS, MAGNETS])]
+    #[task(binds = EXTI9_5, priority = 4, resources = [SENSORS, MAGNETS, TIMER])]
     // 5 doesn't work
     //
     fn exti9_5_handler(mut cx: exti9_5_handler::Context) {
+        let mut timer = cx.resources.TIMER;
         for i in 5..(9+1) {
             if cx.resources.SENSORS[SENSOR_LUT[i]].is_interrupt_pending() {
                 cx.resources.MAGNETS.lock(|MAGNETS| {
-                    sensor_handler(SENSOR_LUT[i], MAGNETS)
+                    timer.lock(|timer| { sensor_handler(SENSOR_LUT[i], MAGNETS, timer) });
                 });
                 cx.resources.SENSORS[SENSOR_LUT[i]].clear_interrupt();
             }
         }
     }
 
-    #[task(binds = EXTI15_10, schedule = [kill_magnets], priority = 4, resources = [SENSORS, MAGNETS])]
+    #[task(binds = EXTI15_10, priority = 4, resources = [SENSORS, MAGNETS, TIMER])]
     fn exti15_10_handler(mut cx: exti15_10_handler::Context) {
+        let mut timer = cx.resources.TIMER;
         for i in 10..(15+1) {
             if cx.resources.SENSORS[SENSOR_LUT[i]].is_interrupt_pending() {
                 cx.resources.MAGNETS.lock(|MAGNETS| {
-                    sensor_handler(SENSOR_LUT[i], MAGNETS)
+                    timer.lock(|timer| { sensor_handler(SENSOR_LUT[i], MAGNETS, timer) });
                 });
                 cx.resources.SENSORS[SENSOR_LUT[i]].clear_interrupt();
             }
