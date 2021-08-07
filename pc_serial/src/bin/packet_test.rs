@@ -12,7 +12,7 @@ pub fn main() {
     payload[1] = 2;
     payload[2] = 3;
 
-    let packet_struct = Packet::new(0x01, Some(&payload));
+    let packet_struct = Packet::from(0x01, Some(&payload));
 
     println!("{:?}\n", packet_struct);
 
