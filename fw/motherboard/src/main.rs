@@ -8,7 +8,7 @@ use nb::block;
 use rtic::{
     app,
     cyccnt::{
-        Instant,
+        // Instant,
         U32Ext as _},
 };
 
@@ -62,7 +62,12 @@ fn sensor_handler(index: usize, magnets: &mut [PXx<Output<PushPull>>]) {
     for magnet in magnets.iter_mut() {
         magnet.set_low().unwrap();
     }
-    magnets[index+1 % 16].set_high().unwrap();
+    let mut index: isize = index as isize;
+    index = index - 1;
+    if index < 0 {
+        index = 15;
+    }
+    magnets[index as usize].set_high().unwrap();
 }
 
 #[app(device = stm32f3xx_hal::pac, peripherals = true, monotonic = rtic::cyccnt::CYCCNT)]
@@ -81,6 +86,7 @@ const APP: () = {
         MAGNETS: [PXx<Output<PushPull>>; 16],
         SENSORS: [PXx<Input>; 16],
     }
+
 
     #[init(spawn = [rx_task, tx_task, moi_task])]
     fn init(cx: init::Context) -> init::LateResources {
@@ -253,15 +259,70 @@ const APP: () = {
 
     // TODO: start/reset kill_magnets timer
     // TODO: write a macro for this... and call it in a loop :D
+    // #[task(binds = EXTI0, schedule = [kill_magnets], priority = 4, resources = [SENSORS, MAGNETS])]
+    // fn exti0_handler(mut cx: exti0_handler::Context) {
+    //     cx.resources.MAGNETS.lock(|MAGNETS| { sensor_handler(SENSOR_LUT[0], MAGNETS) });
+    //     cx.resources.SENSORS[SENSOR_LUT[0]].clear_interrupt();
+    // }
     #[task(binds = EXTI0, schedule = [kill_magnets], priority = 4, resources = [SENSORS, MAGNETS])]
     fn exti0_handler(mut cx: exti0_handler::Context) {
-        cx.resources.MAGNETS.lock(|MAGNETS| { sensor_handler(SENSOR_LUT[0], MAGNETS) });
+        cx.resources.MAGNETS.lock(|MAGNETS| {
+            sensor_handler(SENSOR_LUT[0], MAGNETS)
+        });
         cx.resources.SENSORS[SENSOR_LUT[0]].clear_interrupt();
     }
     #[task(binds = EXTI1, schedule = [kill_magnets], priority = 4, resources = [SENSORS, MAGNETS])]
     fn exti1_handler(mut cx: exti1_handler::Context) {
-        cx.resources.MAGNETS.lock(|MAGNETS| { sensor_handler(SENSOR_LUT[1], MAGNETS) });
+        cx.resources.MAGNETS.lock(|MAGNETS| {
+            sensor_handler(SENSOR_LUT[1], MAGNETS)
+        });
         cx.resources.SENSORS[SENSOR_LUT[1]].clear_interrupt();
+    }
+    #[task(binds = EXTI2_TSC, schedule = [kill_magnets], priority = 4, resources = [SENSORS, MAGNETS])]
+    fn exti2_handler(mut cx: exti2_handler::Context) {
+        cx.resources.MAGNETS.lock(|MAGNETS| {
+            sensor_handler(SENSOR_LUT[2], MAGNETS)
+        });
+        cx.resources.SENSORS[SENSOR_LUT[2]].clear_interrupt();
+    }
+    #[task(binds = EXTI3, schedule = [kill_magnets], priority = 4, resources = [SENSORS, MAGNETS])]
+    fn exti3_handler(mut cx: exti3_handler::Context) {
+        cx.resources.MAGNETS.lock(|MAGNETS| {
+            sensor_handler(SENSOR_LUT[3], MAGNETS)
+        });
+        cx.resources.SENSORS[SENSOR_LUT[3]].clear_interrupt();
+    }
+    #[task(binds = EXTI4, schedule = [kill_magnets], priority = 4, resources = [SENSORS, MAGNETS])]
+    fn exti4_handler(mut cx: exti4_handler::Context) {
+        cx.resources.MAGNETS.lock(|MAGNETS| {
+            sensor_handler(SENSOR_LUT[4], MAGNETS)
+        });
+        cx.resources.SENSORS[SENSOR_LUT[4]].clear_interrupt();
+    }
+    #[task(binds = EXTI9_5, schedule = [kill_magnets], priority = 4, resources = [SENSORS, MAGNETS])]
+    // 5 doesn't work
+    //
+    fn exti9_5_handler(mut cx: exti9_5_handler::Context) {
+        for i in 5..(9+1) {
+            if cx.resources.SENSORS[SENSOR_LUT[i]].is_interrupt_pending() {
+                cx.resources.MAGNETS.lock(|MAGNETS| {
+                    sensor_handler(SENSOR_LUT[i], MAGNETS)
+                });
+                cx.resources.SENSORS[SENSOR_LUT[i]].clear_interrupt();
+            }
+        }
+    }
+
+    #[task(binds = EXTI15_10, schedule = [kill_magnets], priority = 4, resources = [SENSORS, MAGNETS])]
+    fn exti15_10_handler(mut cx: exti15_10_handler::Context) {
+        for i in 10..(15+1) {
+            if cx.resources.SENSORS[SENSOR_LUT[i]].is_interrupt_pending() {
+                cx.resources.MAGNETS.lock(|MAGNETS| {
+                    sensor_handler(SENSOR_LUT[i], MAGNETS)
+                });
+                cx.resources.SENSORS[SENSOR_LUT[i]].clear_interrupt();
+            }
+        }
     }
 
     // Move received byte into serial receive queue
