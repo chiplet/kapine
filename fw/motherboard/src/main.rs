@@ -3,7 +3,8 @@
 #![no_std]
 
 // UART receive FSM STATE
-enum RxState {
+#[derive(Debug)]
+pub enum RxState {
     Sync1,
     Sync2,
     Command,
@@ -14,9 +15,14 @@ enum RxState {
 }
 
 use rtic::app;
-use stm32f3xx_hal::pac;
+use stm32f3xx_hal::{
+    gpio::{Output, PXx, PushPull},
+    pac::{self, TIM2},
+    prelude::*,
+    timer::Timer,
+};
 
-/* fn sensor_handler(index: usize, magnets: &mut [PXx<Output<PushPull>>], timer: &mut Timer<TIM2>) {
+fn sensor_handler(index: usize, magnets: &mut [PXx<Output<PushPull>>], timer: &mut Timer<TIM2>) {
     for magnet in magnets.iter_mut() {
         magnet.set_low().unwrap();
     }
@@ -28,7 +34,6 @@ use stm32f3xx_hal::pac;
     magnets[index as usize].set_high().unwrap();
     timer.start(500.milliseconds());
 }
- */
 
 #[app(device = stm32f3xx_hal::pac, peripherals = true, dispatchers = [USB_HP, USB_LP, USB_WKUP_EXTI, TIM20_BRK, TIM20_UP, TIM20_TRG_COM, TIM20_CC, SPI4, I2C3_ER, I2C3_EV])]
 mod app {
@@ -37,7 +42,9 @@ mod app {
     use nb::block;
     use panic_semihosting as _;
 
+    use rtic::Mutex;
     use stm32f3xx_hal::pac;
+    use stm32f3xx_hal::pac::USART1;
     use stm32f3xx_hal::time::duration::*;
     use stm32f3xx_hal::time::rate::*;
     use stm32f3xx_hal::{
@@ -65,33 +72,31 @@ mod app {
 
     #[shared]
     struct Shared {
-        RX_C: Consumer<'static, u8, RX_QUEUE_LEN>,
-        TX_P: Producer<'static, Packet, TX_QUEUE_LEN>,
-        SENSORS: [PXx<Input>; 16],
-        MAGNETS: [PXx<Output<PushPull>>; 16],
-        TIMER: Timer<TIM2>,
+        rx_c: Consumer<'static, u8, RX_QUEUE_LEN>,
+        tx_p: Producer<'static, Packet, TX_QUEUE_LEN>,
+        sensors: [PXx<Input>; 16],
+        magnets: [PXx<Output<PushPull>>; 16],
+        timer: Timer<TIM2>,
+        serial: Serial<USART1, (PA9<AF7<PushPull>>, PA10<AF7<PushPull>>)>,
     }
 
     #[local]
     struct Local {
-        TX: Tx<pac::USART1, PA9<AF7<PushPull>>>,
-        RX: Rx<pac::USART1, PA10<AF7<PushPull>>>,
-        RX_STATE: RxState,
-        RX_BUF: Packet,
-        RX_P: Producer<'static, u8, RX_QUEUE_LEN>,
-        TX_C: Consumer<'static, Packet, TX_QUEUE_LEN>,
-        DEBUG_LEDS: [PXx<Output<PushPull>>; 2],
+        rx_state: RxState,
+        rx_buf: Packet,
+        rx_p: Producer<'static, u8, RX_QUEUE_LEN>,
+        tx_c: Consumer<'static, Packet, TX_QUEUE_LEN>,
+        debug_leds: [PXx<Output<PushPull>>; 2],
     }
 
     #[monotonic(binds = SysTick, default = true)]
     type MonoTimer = Systick<1000>;
 
-    #[init]
+    #[init(local = [
+        Q: Queue<u8, RX_QUEUE_LEN> = Queue::new(),
+        TX_Q: Queue<Packet, TX_QUEUE_LEN> = Queue::new()
+    ])]
     fn init(cx: init::Context) -> (Shared, Local, init::Monotonics) {
-        // NOTE: static mutable variables must appear at the top of the function!
-        static mut Q: Queue<u8, RX_QUEUE_LEN> = Queue::new();
-        static mut TX_Q: Queue<Packet, TX_QUEUE_LEN> = Queue::new();
-
         hprintln!("init").unwrap();
 
         let mut core = cx.core;
@@ -148,7 +153,7 @@ mod app {
         serial.configure_interrupt(serial::Event::ReceiveDataRegisterNotEmpty, Toggle::On);
 
         // debug LEDs
-        let mut DEBUG_LEDS: [PXx<Output<PushPull>>; 2] = [
+        let mut debug_leds: [PXx<Output<PushPull>>; 2] = [
             gpio_a
                 .pa0
                 .into_push_pull_output(&mut gpio_a.moder, &mut gpio_a.otyper)
@@ -162,7 +167,7 @@ mod app {
         ];
 
         // electromagnet outputs
-        let mut MAGNETS: [PXx<Output<PushPull>>; 16] = [
+        let mut magnets: [PXx<Output<PushPull>>; 16] = [
             gpio_b
                 .pb5
                 .into_push_pull_output(&mut gpio_b.moder, &mut gpio_b.otyper)
@@ -245,7 +250,7 @@ mod app {
                 .downgrade(),
         ];
 
-        for magnet in &mut MAGNETS {
+        for magnet in &mut magnets {
             magnet
                 .set_low()
                 .expect("could not turn magnet off at startup");
@@ -254,7 +259,7 @@ mod app {
         // photo-gate sensor inputs
         // enable EXTIx for x in {0, 1, 2, 4, 6, 7, 8, 9, 10, 11, 12, 13, 15}
         // required 3, 5, 14
-        let mut SENSORS: [PXx<Input>; 16] = [
+        let mut sensors: [PXx<Input>; 16] = [
             gpio_b
                 .pb4
                 .into_pull_up_input(&mut gpio_b.moder, &mut gpio_b.pupdr)
@@ -338,13 +343,13 @@ mod app {
         ];
 
         // enable sensor interrupts
-        for sensor in &mut SENSORS {
+        for sensor in &mut sensors {
             sensor.trigger_on_edge(&mut exti, Edge::Falling);
             syscfg.select_exti_interrupt_source(sensor);
             sensor.enable_interrupt(&mut exti);
         }
 
-        let (tx, rx) = serial.split();
+        //let (tx, rx) = serial.split();
 
         rtic::pend(Interrupt::USART1_EXTI25);
 
@@ -352,260 +357,288 @@ mod app {
         let payload = [0u8; 255];
         let packet = Packet::from(0u8, Some(&payload));
 
-        let (RX_P, RX_C) = Q.split();
-        let (TX_P, TX_C) = TX_Q.split();
+        let Q: &'static mut Queue<u8, RX_QUEUE_LEN> = cx.local.Q;
+        let TX_Q: &'static mut Queue<Packet, TX_QUEUE_LEN> = cx.local.TX_Q;
+        let (rx_p, rx_c) = Q.split();
+        let (tx_p, tx_c) = TX_Q.split();
 
         // 2Hz
-        let mut TIMER = Timer::new(device.TIM2, clocks, &mut rcc.apb1);
-        TIMER.enable_interrupt(Event::Update);
-        TIMER.stop();
+        let mut timer = Timer::new(device.TIM2, clocks, &mut rcc.apb1);
+        timer.enable_interrupt(Event::Update);
+        timer.stop();
 
         // spawn software tasks
-        DEBUG_LEDS[1].set_high().ok();
+        debug_leds[1].set_high().ok();
         blink_task::spawn().unwrap();
         tx_task::spawn().unwrap();
-        rx_task::spawn().unwrap();
+        //rx_task::spawn().unwrap();
+
+        // best task
+        moi_task::spawn().unwrap();
 
         (
             Shared {
-                RX_C,
-                TX_P,
-                SENSORS,
-                MAGNETS,
-                TIMER,
+                rx_c,
+                tx_p,
+                sensors,
+                magnets,
+                timer,
+                serial,
             },
             Local {
-                TX: tx,
-                RX: rx,
-                RX_STATE: RxState::Sync1,
-                RX_BUF: packet,
-                RX_P,
-                TX_C,
-                DEBUG_LEDS,
+                rx_state: RxState::Sync1,
+                rx_buf: packet,
+                rx_p,
+                tx_c,
+                debug_leds,
             },
             init::Monotonics(mono),
         )
     }
 
-    // reads a packet from the tx queue and transmits it over serial
-    #[task(priority = 3, local = [TX, TX_C])]
-    fn tx_task(cx: tx_task::Context) {
-        // TODO: make tx_buf length a constant in kapine-packet
-        let mut tx_buf = [0u8; 261];
-
-        if let Some(packet) = cx.local.TX_C.dequeue() {
-            let length: usize = packet.write_bytes(&mut tx_buf[..]) as usize;
-
-            for byte in tx_buf[..length].iter() {
-                block!(cx.local.TX.write(*byte)).unwrap();
-                block!(cx.local.TX.flush()).unwrap();
-            }
-        }
-
-        tx_task::spawn_after(1.secs()).unwrap();
-    }
-
-    #[task(priority = 2, shared = [TX_P])]
+    #[task(priority = 2, shared = [tx_p])]
     fn moi_task(mut cx: moi_task::Context) {
-        cx.shared.TX_P.lock(|TX_P| {
-            TX_P.enqueue(Packet::from(3, Some(b"jee :D"))).unwrap();
+        cx.shared.tx_p.lock(|tx_p| {
+            tx_p.enqueue(Packet::from(3, Some(b"jee :D"))).unwrap();
         });
     }
 
-    #[task(priority = 3, local = [DEBUG_LEDS])]
-    fn blink_task(mut cx: blink_task::Context) {
-        for led in cx.local.DEBUG_LEDS.iter_mut() {
+    #[task(priority = 3, local = [debug_leds])]
+    fn blink_task(cx: blink_task::Context) {
+        for led in cx.local.debug_leds.iter_mut() {
             led.toggle().ok();
         }
-        //cx.schedule.blink_task(cx.scheduled + 72_000_000.cycles()).unwrap();
-        blink_task::spawn_after(1.secs());
+        blink_task::spawn_after(1.secs()).unwrap();
     }
 
     // shut all magnets of immediately
-    #[task(binds = TIM2, priority = 6, shared = [TIMER, MAGNETS])]
+    #[task(binds = TIM2, priority = 6, shared = [timer, magnets])]
     fn kill_magnets(cx: kill_magnets::Context) {
-        if cx.shared.TIMER.is_event_triggered(Event::Update) {
-            cx.shared.TIMER.stop();
-            cx.shared.TIMER.clear_events();
-            for magnet in cx.shared.MAGNETS.iter_mut() {
-                magnet.set_low().ok(); // continue shutting off magnets even if one `set_low` call fails
+        let timer = cx.shared.timer;
+        let magnets = cx.shared.magnets;
+        (timer, magnets).lock(|timer, magnets| {
+            if timer.is_event_triggered(Event::Update) {
+                timer.stop();
+                timer.clear_events();
+                for magnet in magnets.iter_mut() {
+                    magnet.set_low().ok(); // continue shutting off magnets even if one `set_low` call fails
+                }
             }
-        }
+        })
     }
 
     // TODO: start/reset kill_magnets timer
     // TODO: write a macro for this... and call it in a loop :D
-    // #[task(binds = EXTI0,  priority = 4, resources = [SENSORS, MAGNETS])]
-    // fn exti0_handler(mut cx: exti0_handler::Context) {
-    //     cx.resources.MAGNETS.lock(|MAGNETS| { sensor_handler(SENSOR_LUT[0], MAGNETS) });
-    //     cx.resources.SENSORS[SENSOR_LUT[0]].clear_interrupt();
-    // }
-    #[task(binds = EXTI0, priority = 4, shared = [SENSORS, MAGNETS, TIMER])]
-    fn exti0_handler(mut cx: exti0_handler::Context) {
-        let mut timer = cx.shared.TIMER;
-        cx.shared.MAGNETS.lock(|MAGNETS| {
-            timer.lock(|timer| sensor_handler(SENSOR_LUT[0], MAGNETS, timer));
+    #[task(binds = EXTI0, priority = 4, shared = [sensors, magnets, timer])]
+    fn exti0_handler(cx: exti0_handler::Context) {
+        let timer = cx.shared.timer;
+        let sensors = cx.shared.sensors;
+        let magnets = cx.shared.magnets;
+        (timer, sensors, magnets).lock(|timer, sensors, magnets| {
+            super::sensor_handler(SENSOR_LUT[0], magnets, timer);
+            sensors[SENSOR_LUT[0]].clear_interrupt();
         });
-        cx.shared.SENSORS[SENSOR_LUT[0]].clear_interrupt();
     }
-    #[task(binds = EXTI1, priority = 4, shared = [SENSORS, MAGNETS, TIMER])]
-    fn exti1_handler(mut cx: exti1_handler::Context) {
-        let mut timer = cx.shared.TIMER;
-        cx.shared.MAGNETS.lock(|MAGNETS| {
-            timer.lock(|timer| sensor_handler(SENSOR_LUT[1], MAGNETS, timer));
+    #[task(binds = EXTI1, priority = 4, shared = [sensors, magnets, timer])]
+    fn exti1_handler(cx: exti1_handler::Context) {
+        let timer = cx.shared.timer;
+        let sensors = cx.shared.sensors;
+        let magnets = cx.shared.magnets;
+        (timer, sensors, magnets).lock(|timer, sensors, magnets| {
+            super::sensor_handler(SENSOR_LUT[0], magnets, timer);
+            sensors[SENSOR_LUT[1]].clear_interrupt();
         });
-        cx.shared.SENSORS[SENSOR_LUT[1]].clear_interrupt();
     }
-    #[task(binds = EXTI2_TSC, priority = 4, shared = [SENSORS, MAGNETS, TIMER])]
-    fn exti2_handler(mut cx: exti2_handler::Context) {
-        let mut timer = cx.shared.TIMER;
-        cx.shared.MAGNETS.lock(|MAGNETS| {
-            timer.lock(|timer| sensor_handler(SENSOR_LUT[2], MAGNETS, timer));
+    #[task(binds = EXTI2_TSC, priority = 4, shared = [sensors, magnets, timer])]
+    fn exti2_handler(cx: exti2_handler::Context) {
+        let timer = cx.shared.timer;
+        let sensors = cx.shared.sensors;
+        let magnets = cx.shared.magnets;
+        (timer, sensors, magnets).lock(|timer, sensors, magnets| {
+            super::sensor_handler(SENSOR_LUT[0], magnets, timer);
+            sensors[SENSOR_LUT[2]].clear_interrupt();
         });
-        cx.shared.SENSORS[SENSOR_LUT[2]].clear_interrupt();
     }
-    #[task(binds = EXTI3, priority = 4, shared = [SENSORS, MAGNETS, TIMER])]
-    fn exti3_handler(mut cx: exti3_handler::Context) {
-        let mut timer = cx.shared.TIMER;
-        cx.shared.MAGNETS.lock(|MAGNETS| {
-            timer.lock(|timer| sensor_handler(SENSOR_LUT[3], MAGNETS, timer));
+    #[task(binds = EXTI3, priority = 4, shared = [sensors, magnets, timer])]
+    fn exti3_handler(cx: exti3_handler::Context) {
+        let timer = cx.shared.timer;
+        let sensors = cx.shared.sensors;
+        let magnets = cx.shared.magnets;
+        (timer, sensors, magnets).lock(|timer, sensors, magnets| {
+            super::sensor_handler(SENSOR_LUT[0], magnets, timer);
+            sensors[SENSOR_LUT[3]].clear_interrupt();
         });
-        cx.shared.SENSORS[SENSOR_LUT[3]].clear_interrupt();
     }
-    #[task(binds = EXTI4, priority = 4, shared = [SENSORS, MAGNETS, TIMER])]
-    fn exti4_handler(mut cx: exti4_handler::Context) {
-        let mut timer = cx.shared.TIMER;
-        cx.shared.MAGNETS.lock(|MAGNETS| {
-            timer.lock(|timer| sensor_handler(SENSOR_LUT[4], MAGNETS, timer));
+    #[task(binds = EXTI4, priority = 4, shared = [sensors, magnets, timer])]
+    fn exti4_handler(cx: exti4_handler::Context) {
+        let timer = cx.shared.timer;
+        let sensors = cx.shared.sensors;
+        let magnets = cx.shared.magnets;
+        (timer, sensors, magnets).lock(|timer, sensors, magnets| {
+            super::sensor_handler(SENSOR_LUT[0], magnets, timer);
+            sensors[SENSOR_LUT[4]].clear_interrupt();
         });
-        cx.shared.SENSORS[SENSOR_LUT[4]].clear_interrupt();
     }
     // 5 doesn't work
-    #[task(binds = EXTI9_5, priority = 4, shared = [SENSORS, MAGNETS, TIMER])]
-    fn exti9_5_handler(mut cx: exti9_5_handler::Context) {
-        let mut timer = cx.shared.TIMER;
-        for i in 5..(9 + 1) {
-            if cx.shared.SENSORS[SENSOR_LUT[i]].is_interrupt_pending() {
-                cx.shared.MAGNETS.lock(|MAGNETS| {
-                    timer.lock(|timer| sensor_handler(SENSOR_LUT[i], MAGNETS, timer));
-                });
-                cx.shared.SENSORS[SENSOR_LUT[i]].clear_interrupt();
+    #[task(binds = EXTI9_5, priority = 4, shared = [sensors, magnets, timer])]
+    fn exti9_5_handler(cx: exti9_5_handler::Context) {
+        let timer = cx.shared.timer;
+        let sensors = cx.shared.sensors;
+        let magnets = cx.shared.magnets;
+        (timer, sensors, magnets).lock(|timer, sensors, magnets| {
+            for i in 5..(9 + 1) {
+                if sensors[SENSOR_LUT[i]].is_interrupt_pending() {
+                    super::sensor_handler(SENSOR_LUT[i], magnets, timer);
+                    sensors[SENSOR_LUT[i]].clear_interrupt();
+                }
             }
-        }
+        });
     }
 
-    #[task(binds = EXTI15_10, priority = 4, shared = [SENSORS, MAGNETS, TIMER])]
-    fn exti15_10_handler(mut cx: exti15_10_handler::Context) {
-        let mut timer = cx.shared.TIMER;
-        for i in 10..(15 + 1) {
-            if cx.shared.SENSORS[SENSOR_LUT[i]].is_interrupt_pending() {
-                cx.shared.MAGNETS.lock(|MAGNETS| {
-                    timer.lock(|timer| sensor_handler(SENSOR_LUT[i], MAGNETS, timer));
-                });
-                cx.shared.SENSORS[SENSOR_LUT[i]].clear_interrupt();
+    #[task(binds = EXTI15_10, priority = 4, shared = [sensors, magnets, timer])]
+    fn exti15_10_handler(cx: exti15_10_handler::Context) {
+        let timer = cx.shared.timer;
+        let sensors = cx.shared.sensors;
+        let magnets = cx.shared.magnets;
+        (timer, sensors, magnets).lock(|timer, sensors, magnets| {
+            for i in 10..(15 + 1) {
+                if sensors[SENSOR_LUT[i]].is_interrupt_pending() {
+                    super::sensor_handler(SENSOR_LUT[i], magnets, timer);
+                    sensors[SENSOR_LUT[i]].clear_interrupt();
+                }
             }
-        }
+        });
     }
 
     // Move received byte into serial receive queue
     // TODO: remove panicing once serial communications are reliable enough
-    #[task(binds = USART1_EXTI25, priority = 5, local = [RX, RX_P])]
-    fn usart1(cx: usart1::Context) {
-        match cx.local.RX.read() {
-            Ok(c) => {
-                cx.local
-                    .RX_P
-                    .enqueue(c)
-                    .expect("serial rx queue overflow");
-                // TODO: remove??
-                // cx.spawn.rx_task().unwrap();
-            }
-            Err(e) => {
-                match e {
-                    nb::Error::WouldBlock => (), // no data available
-                    nb::Error::Other(stm32f3xx_hal::serial::Error::Overrun) => {
-                        panic!("rx buffer overrun")
+    #[task(binds = USART1_EXTI25, priority = 8, local = [rx_p], shared = [serial])]
+    fn uart_handler(mut cx: uart_handler::Context) {
+        let rx_p = cx.local.rx_p;
+
+        cx.shared.serial.lock(|serial| {
+            if serial.is_event_triggered(serial::Event::ReceiveDataRegisterNotEmpty) {
+                serial.configure_interrupt(serial::Event::ReceiveDataRegisterNotEmpty, Toggle::Off);
+                match serial.read() {
+                    Ok(c) => {
+                        rx_p.enqueue(c).expect("serial rx queue overflow");
+                        serial.configure_interrupt(serial::Event::ReceiveDataRegisterNotEmpty, Toggle::On);
+                        rx_task::spawn().unwrap();
                     }
-                    _ => panic!("{:?}", e),
-                }
+                    Err(e) => {
+                        match e {
+                            nb::Error::WouldBlock => (), // no data available
+                            nb::Error::Other(stm32f3xx_hal::serial::Error::Overrun) => {
+                                panic!("rx buffer overrun")
+                            }
+                            _ => panic!("{:?}", e),
+                        }
+                    }
+                };
             }
-        };
+        })
     }
 
-    #[task(priority = 4, shared = [RX_C, TX_P])]
+    #[task(priority = 4, shared = [rx_c, tx_p], local = [rx_state])]
     fn rx_task(cx: rx_task::Context) {
-        static mut STATE: RxState = RxState::Sync1;
-        static mut PACKET: Packet = Packet::new();
-        static mut PAYLOAD_BUF: [u8; 255] = [0u8; 255];
+        let mut payload_buf: [u8; 255] = [0u8; 255];
+        let mut packet: Packet = Packet::new();
 
-        if let Some(byte) = cx.shared.RX_C.dequeue() {
-            // cx.shared.TX_P.enqueue(Packet::from(3, Some(b"0")));
+        
+        let rx_consumer = cx.shared.rx_c;
+        let tx_producer = cx.shared.tx_p;
+        let rx_state = cx.local.rx_state;
+        (rx_consumer, tx_producer).lock(|rx_consumer, tx_producer| {
+            if let Some(byte) = rx_consumer.dequeue() {
+                hprintln!("{}", byte);
+                // cx.shared.tx_p.enqueue(Packet::from(3, Some(b"0")));
 
-            // packet receive STATE machine
-            match STATE {
-                RxState::Sync1 => match byte {
-                    0xAA => *STATE = RxState::Sync2,
-                    _ => *STATE = RxState::Sync1,
-                },
-                RxState::Sync2 => match byte {
-                    0x55 => *STATE = RxState::Command,
-                    _ => *STATE = RxState::Sync1,
-                },
-                RxState::Command => {
-                    *STATE = RxState::Length;
+                // packet receive STATE machine
+                match rx_state {
+                    RxState::Sync1 => match byte {
+                        0xAA => *rx_state = RxState::Sync2,
+                        _ => *rx_state = RxState::Sync1,
+                    },
+                    RxState::Sync2 => match byte {
+                        0x55 => *rx_state = RxState::Command,
+                        _ => *rx_state = RxState::Sync1,
+                    },
+                    RxState::Command => {
+                        *rx_state = RxState::Length;
 
-                    PACKET.command = byte;
-                }
-                RxState::Length => {
-                    match byte {
-                        0 => {
-                            *STATE = RxState::Crc1;
+                        packet.command = byte;
+                    }
+                    RxState::Length => {
+                        match byte {
+                            0 => {
+                                *rx_state = RxState::Crc1;
+                            }
+                            _ => {
+                                *rx_state = RxState::Payload(byte - 1);
+                                packet.payload = None;
+                            }
                         }
-                        _ => {
-                            *STATE = RxState::Payload(byte - 1);
-                            PACKET.payload = None;
+
+                        packet.length = byte;
+                    }
+                    RxState::Payload(i) => {
+                        // FIXME: something strange going on here with borrowing
+                        // TODO: come up with something simpler
+                        let i: u8 = *i;
+                        match i {
+                            0 => *rx_state = RxState::Crc1,
+                            _ => *rx_state = RxState::Payload(i - 1),
+                        }
+
+                        payload_buf[(packet.length - 1 - i) as usize] = byte;
+                        if i == 0 {
+                            packet.payload = Some(payload_buf);
                         }
                     }
+                    RxState::Crc1 => {
+                        *rx_state = RxState::Crc2;
 
-                    PACKET.length = byte;
-                }
-                RxState::Payload(i) => {
-                    // FIXME: something strange going on here with borrowing
-                    // TODO: come up with something simpler
-                    let i: u8 = *i;
-                    match i {
-                        0 => *STATE = RxState::Crc1,
-                        _ => *STATE = RxState::Payload(i - 1),
+                        packet.checksum = 0u16;
+                        packet.checksum |= byte as u16;
                     }
+                    RxState::Crc2 => {
+                        *rx_state = RxState::Sync1;
 
-                    PAYLOAD_BUF[(PACKET.length - 1 - i) as usize] = byte;
-                    if i == 0 {
-                        PACKET.payload = Some(*PAYLOAD_BUF);
+                        packet.checksum |= (byte as u16) << 8;
+
+                        // TODO: remove panicing
+                        packet = packet.validate().expect("invalid checksum");
+                        hprintln!("packet: {:?}", packet).unwrap();
+
+                        tx_producer
+                            .enqueue(packet)
+                            .expect("could not push to tx channel");
                     }
-                }
-                RxState::Crc1 => {
-                    *STATE = RxState::Crc2;
-
-                    PACKET.checksum = 0u16;
-                    PACKET.checksum |= byte as u16;
-                }
-                RxState::Crc2 => {
-                    *STATE = RxState::Sync1;
-
-                    PACKET.checksum |= (byte as u16) << 8;
-
-                    // TODO: remove panicing
-                    *PACKET = PACKET.validate().expect("invalid checksum");
-
-                    cx.shared
-                        .TX_P
-                        .enqueue(*PACKET)
-                        .expect("could not push to tx channel");
                 }
             }
-        }
+        });
 
         // bytes arriving at 14_400 Hz
-        cx.schedule.rx_task(cx.scheduled + 5_000.cycles()).unwrap();
+        //rx_task::spawn_after(69.micros()).unwrap();
+    }
+
+    // reads a packet from the tx queue and transmits it over serial
+    #[task(priority = 4, local = [tx_c], shared = [serial])]
+    fn tx_task(mut cx: tx_task::Context) {
+        // TODO: make tx_buf length a constant in kapine-packet
+        let mut tx_buf = [0u8; 261];
+        
+        if let Some(packet) = cx.local.tx_c.dequeue() {
+            cx.shared.serial.lock(|serial| {
+                let length: usize = packet.write_bytes(&mut tx_buf[..]) as usize;
+    
+                for byte in tx_buf[..length].iter() {
+                    block!(serial.write(*byte)).unwrap();
+                    block!(serial.flush()).unwrap();
+                }
+            });
+        }
+
+        tx_task::spawn_after(1.millis()).unwrap();
     }
 }
