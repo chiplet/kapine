@@ -74,6 +74,7 @@ mod app {
     struct Shared {
         rx_c: Consumer<'static, u8, RX_QUEUE_LEN>,
         tx_p: Producer<'static, Packet, TX_QUEUE_LEN>,
+        tx_c: Consumer<'static, Packet, TX_QUEUE_LEN>,
         sensors: [PXx<Input>; 16],
         magnets: [PXx<Output<PushPull>>; 16],
         timer: Timer<TIM2>,
@@ -85,8 +86,10 @@ mod app {
         rx_state: RxState,
         rx_buf: Packet,
         rx_p: Producer<'static, u8, RX_QUEUE_LEN>,
-        tx_c: Consumer<'static, Packet, TX_QUEUE_LEN>,
         debug_leds: [PXx<Output<PushPull>>; 2],
+        payload_buf: [u8; 255],
+        packet: Packet,
+        local_cnt: u8,
     }
 
     #[monotonic(binds = SysTick, default = true)]
@@ -369,16 +372,18 @@ mod app {
 
         // spawn software tasks
         debug_leds[1].set_high().ok();
-        blink_task::spawn().unwrap();
-        tx_task::spawn().unwrap();
-        //rx_task::spawn().unwrap();
+        //tx_task::spawn().unwrap();
+        rx_task::spawn().unwrap();
+        command_task::spawn().unwrap();
 
         // best task
-        moi_task::spawn().unwrap();
+        // moi_task::spawn().unwrap();
+        packet_cat_task::spawn().unwrap();
 
         (
             Shared {
                 rx_c,
+                tx_c,
                 tx_p,
                 sensors,
                 magnets,
@@ -389,8 +394,10 @@ mod app {
                 rx_state: RxState::Sync1,
                 rx_buf: packet,
                 rx_p,
-                tx_c,
                 debug_leds,
+                payload_buf: [0u8; 255],
+                packet: Packet::new(),
+                local_cnt: 0u8,
             },
             init::Monotonics(mono),
         )
@@ -522,8 +529,12 @@ mod app {
                 match serial.read() {
                     Ok(c) => {
                         rx_p.enqueue(c).expect("serial rx queue overflow");
-                        serial.configure_interrupt(serial::Event::ReceiveDataRegisterNotEmpty, Toggle::On);
-                        rx_task::spawn().unwrap();
+                        serial.configure_interrupt(
+                            serial::Event::ReceiveDataRegisterNotEmpty,
+                            Toggle::On,
+                        );
+                        //blink_task::spawn().unwrap();
+                        //rx_task::spawn().unwrap();
                     }
                     Err(e) => {
                         match e {
@@ -539,18 +550,44 @@ mod app {
         })
     }
 
-    #[task(priority = 4, shared = [rx_c, tx_p], local = [rx_state])]
-    fn rx_task(cx: rx_task::Context) {
-        let mut payload_buf: [u8; 255] = [0u8; 255];
-        let mut packet: Packet = Packet::new();
+    #[task(priority = 4, shared = [rx_c, tx_c])]
+    fn packet_cat_task(mut cx: packet_cat_task::Context) {
+        // TODO: make tx_buf length a constant in kapine-packet
+        hprintln!("packet_cat_task").unwrap();
+        let mut tx_buf = [0u8; 261];
+        cx.shared.tx_c.lock(|tx_c| {
+            if let Some(packet) = tx_c.dequeue() {
+                hprintln!("{:?}", packet);
+                // let length: usize = packet.write_bytes(&mut tx_buf[..]) as usize;
+                // hprintln!("{:?}", tx_buf);
+            }
+        });
+        // cx.shared.rx_c.lock(|rx_c| {
+        //     if let Some(char) = rx_c.dequeue() {
+        //         hprintln!("{}", char).unwrap();
+        //     }
+        // });
 
-        
-        let rx_consumer = cx.shared.rx_c;
+        packet_cat_task::spawn_after(1.secs()).unwrap();
+    }
+
+    // FIXME: increase rx_c buffer size and run at some sensible frequency e.g. 1kHz
+    #[task(priority = 7, shared = [rx_c, tx_p], local = [rx_state, local_cnt, packet, payload_buf])]
+    fn rx_task(cx: rx_task::Context) {
+
+        // hprintln!("rx_task {:?}", cx.local.rx_state).unwrap();
+        // let local_cnt = cx.local.local_cnt;
+        // hprintln!("local_cnt {}", local_cnt);
+        // *local_cnt += 1;
+
+        let mut rx_consumer = cx.shared.rx_c;
         let tx_producer = cx.shared.tx_p;
         let rx_state = cx.local.rx_state;
+        let packet = cx.local.packet;
+        let payload_buf = cx.local.payload_buf;
         (rx_consumer, tx_producer).lock(|rx_consumer, tx_producer| {
             if let Some(byte) = rx_consumer.dequeue() {
-                hprintln!("{}", byte);
+                // hprintln!("0x{:02x}", byte).unwrap();
                 // cx.shared.tx_p.enqueue(Packet::from(3, Some(b"0")));
 
                 // packet receive STATE machine
@@ -582,6 +619,7 @@ mod app {
                         packet.length = byte;
                     }
                     RxState::Payload(i) => {
+                        // FIXME: indexing error on packet deser, tries to index 255 with array length 255
                         // FIXME: something strange going on here with borrowing
                         // TODO: come up with something simpler
                         let i: u8 = *i;
@@ -590,9 +628,10 @@ mod app {
                             _ => *rx_state = RxState::Payload(i - 1),
                         }
 
-                        payload_buf[(packet.length - 1 - i) as usize] = byte;
-                        if i == 0 {
-                            packet.payload = Some(payload_buf);
+                        if i > 0 {
+                            payload_buf[(packet.length - 1 - i) as usize] = byte;
+                        } else {
+                            packet.payload = Some(*payload_buf);
                         }
                     }
                     RxState::Crc1 => {
@@ -604,14 +643,15 @@ mod app {
                     RxState::Crc2 => {
                         *rx_state = RxState::Sync1;
 
-                        packet.checksum |= (byte as u16) << 8;
+                        // packet.checksum |= (byte as u16) << 8;
+                        // TODO: compute checksum
 
                         // TODO: remove panicing
-                        packet = packet.validate().expect("invalid checksum");
-                        hprintln!("packet: {:?}", packet).unwrap();
+                        //packet.validate().expect("invalid checksum");
+                        //hprintln!("packet: {:?}", packet).unwrap();
 
                         tx_producer
-                            .enqueue(packet)
+                            .enqueue(*packet)
                             .expect("could not push to tx channel");
                     }
                 }
@@ -619,26 +659,50 @@ mod app {
         });
 
         // bytes arriving at 14_400 Hz
-        //rx_task::spawn_after(69.micros()).unwrap();
+        rx_task::spawn_after(5000.micros()).unwrap();
     }
 
     // reads a packet from the tx queue and transmits it over serial
-    #[task(priority = 4, local = [tx_c], shared = [serial])]
+    #[task(priority = 4, shared = [serial, tx_c])]
     fn tx_task(mut cx: tx_task::Context) {
         // TODO: make tx_buf length a constant in kapine-packet
         let mut tx_buf = [0u8; 261];
-        
-        if let Some(packet) = cx.local.tx_c.dequeue() {
-            cx.shared.serial.lock(|serial| {
+
+        let serial = cx.shared.serial;
+        let tx_c = cx.shared.tx_c;
+        (serial, tx_c).lock(|serial, tx_c| {
+            if let Some(packet) = tx_c.dequeue() {
                 let length: usize = packet.write_bytes(&mut tx_buf[..]) as usize;
-    
+
                 for byte in tx_buf[..length].iter() {
                     block!(serial.write(*byte)).unwrap();
                     block!(serial.flush()).unwrap();
                 }
-            });
-        }
+            }
+        });
 
         tx_task::spawn_after(1.millis()).unwrap();
+    }
+
+    // reads a packet from the tx queue and transmits it over serial
+    #[task(priority = 4, shared = [tx_c, magnets, timer])]
+    fn command_task(mut cx: command_task::Context) {
+        let tx_c = cx.shared.tx_c;
+        let magnets = cx.shared.magnets;
+        let timer = cx.shared.timer;
+        (tx_c, magnets, timer).lock(|tx_c, magnets, timer| {
+            if let Some(packet) = tx_c.dequeue() {
+                // TODO: enumerate commands somewhere
+                match packet.command {
+                    4 => {
+                        magnets[packet.payload.unwrap()[0] as usize].set_high().unwrap();
+                        timer.start(500.milliseconds());
+                    }
+                    _ => unimplemented!()
+                }
+            }
+        });
+
+        command_task::spawn_after(1.millis()).unwrap();
     }
 }
