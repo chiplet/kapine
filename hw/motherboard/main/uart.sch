@@ -359,7 +359,7 @@ F 3 "" H 4000 3100 50  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L Power_Protection:USBLC6-2SC6 U?
+L main-rescue:USBLC6-2SC6-Power_Protection U?
 U 1 1 5F5A6BBF
 P 4500 3100
 AR Path="/5F5A6BBF" Ref="U?"  Part="1" 

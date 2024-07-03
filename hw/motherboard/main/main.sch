@@ -814,10 +814,8 @@ Text Label 5200 5200 2    50   ~ 0
 m2
 Wire Wire Line
 	5200 5200 5350 5200
-Text Label 5200 5100 2    50   ~ 0
+Text Label 6900 2700 0    50   ~ 0
 s2
-Wire Wire Line
-	5350 5100 5200 5100
 Text Label 6900 3600 0    50   ~ 0
 m3
 Text Label 6900 3500 0    50   ~ 0
@@ -878,11 +876,11 @@ Text Label 5200 4600 2    50   ~ 0
 m10
 Wire Wire Line
 	5200 4600 5350 4600
-Text Label 5200 4500 2    50   ~ 0
+Text Label 5200 5500 2    50   ~ 0
 s10
 Wire Wire Line
 	5200 4500 5350 4500
-Text Label 6900 2700 0    50   ~ 0
+Text Label 6900 2800 0    50   ~ 0
 m11
 Wire Wire Line
 	6900 2700 6750 2700
@@ -894,7 +892,7 @@ Text Label 5200 4400 2    50   ~ 0
 m12
 Wire Wire Line
 	5200 4400 5350 4400
-Text Label 5200 4300 2    50   ~ 0
+Text Label 6900 2900 0    50   ~ 0
 s12
 Wire Wire Line
 	5200 4300 5350 4300
@@ -1065,10 +1063,6 @@ F 3 "http://www.st.com/st-web-ui/static/active/en/resource/technical/document/da
 	1    6050 4000
 	1    0    0    -1  
 $EndComp
-Text Label 6800 2800 0    50   ~ 0
-PA4
-Text Label 6800 2900 0    50   ~ 0
-PA5
 Text Label 6800 3000 0    50   ~ 0
 PA6
 Text Label 6800 3100 0    50   ~ 0
@@ -1078,13 +1072,9 @@ Wire Wire Line
 Wire Wire Line
 	6800 3000 6750 3000
 Wire Wire Line
-	6800 2900 6750 2900
+	6900 2900 6750 2900
 Wire Wire Line
-	6800 2800 6750 2800
-Text Label 8100 950  2    50   ~ 0
-PA4
-Text Label 8100 1050 2    50   ~ 0
-PA5
+	6900 2800 6750 2800
 Text Label 8100 1150 2    50   ~ 0
 PA6
 Text Label 8100 1250 2    50   ~ 0
@@ -1101,16 +1091,12 @@ Wire Wire Line
 	6800 5300 6750 5300
 Text Label 8100 1450 2    50   ~ 0
 PB12
-Text Label 5300 5500 2    50   ~ 0
-PC14
 Text Label 5300 5600 2    50   ~ 0
 PC15
 Wire Wire Line
-	5300 5500 5350 5500
+	5200 5500 5350 5500
 Wire Wire Line
 	5300 5600 5350 5600
-Text Label 8100 1550 2    50   ~ 0
-PC14
 Text Label 8100 1650 2    50   ~ 0
 PC15
 $Comp
@@ -1124,4 +1110,6 @@ F 3 "~" H 8300 1250 50  0001 C CNN
 	1    8300 1250
 	1    0    0    -1  
 $EndComp
+Text Notes 2750 5100 0    50   ~ 0
+TODO: changes\nm11 (PA3 -> PA4)\ns2(PC10 -> PA3) // needs to be pin 3\ns12(PC2 -> PA5) // needs to be pin 5\ns10(PC4 -> PC14) // needs to be pin 14\n
 $EndSCHEMATC

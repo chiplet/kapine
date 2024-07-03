@@ -6,7 +6,7 @@ encoding utf-8
 Sheet 2 4
 Title "KAPINE Motherboard"
 Date "2020-09-02"
-Rev "1.1"
+Rev "1.2"
 Comp "Verneri Hirvonen"
 Comment1 ""
 Comment2 ""

@@ -5,8 +5,8 @@ $Descr A4 11693 8268
 encoding utf-8
 Sheet 1 4
 Title "KAPINE Motherboard"
-Date "2020-09-02"
-Rev "1.1"
+Date "2020-09-03"
+Rev "1.2"
 Comp "Verneri Hirvonen"
 Comment1 ""
 Comment2 ""
@@ -882,10 +882,10 @@ Text Label 5200 4500 2    50   ~ 0
 s10
 Wire Wire Line
 	5200 4500 5350 4500
-Text Label 6900 2700 0    50   ~ 0
+Text Label 6900 2800 0    50   ~ 0
 m11
 Wire Wire Line
-	6900 2700 6750 2700
+	6800 2700 6750 2700
 Text Label 6900 2600 0    50   ~ 0
 s11
 Wire Wire Line
@@ -1065,8 +1065,8 @@ F 3 "http://www.st.com/st-web-ui/static/active/en/resource/technical/document/da
 	1    6050 4000
 	1    0    0    -1  
 $EndComp
-Text Label 6800 2800 0    50   ~ 0
-PA4
+Text Label 6800 2700 0    50   ~ 0
+PA3
 Text Label 6800 2900 0    50   ~ 0
 PA5
 Text Label 6800 3000 0    50   ~ 0
@@ -1080,9 +1080,9 @@ Wire Wire Line
 Wire Wire Line
 	6800 2900 6750 2900
 Wire Wire Line
-	6800 2800 6750 2800
+	6900 2800 6750 2800
 Text Label 8100 950  2    50   ~ 0
-PA4
+PA3
 Text Label 8100 1050 2    50   ~ 0
 PA5
 Text Label 8100 1150 2    50   ~ 0
@@ -1124,4 +1124,6 @@ F 3 "~" H 8300 1250 50  0001 C CNN
 	1    8300 1250
 	1    0    0    -1  
 $EndComp
+Text Notes 7550 3000 0    50   ~ 0
+TODO: changes\nm11 (PA3 -> PA4)\ns2(PC10 -> PA3) // needs to be pin 3\ns12(PC2 -> PA5) // needs to be pin 5\ns10(PC4 -> PC14) // needs to be pin 14\n
 $EndSCHEMATC
