@@ -691,45 +691,6 @@ Text Label 6900 4600 0    50   ~ 0
 m0
 Text Notes 1700 3850 0    50   ~ 0
 Electromagnet control signals: m[0..15]\nPhoto gate sensor inputs: s[0..15]
-$Comp
-L power:GND #PWR095
-U 1 1 5F529F84
-P 2200 7000
-F 0 "#PWR095" H 2200 6750 50  0001 C CNN
-F 1 "GND" H 2205 6827 50  0000 C CNN
-F 2 "" H 2200 7000 50  0001 C CNN
-F 3 "" H 2200 7000 50  0001 C CNN
-	1    2200 7000
-	1    0    0    -1  
-$EndComp
-Wire Wire Line
-	2200 7000 2200 6950
-$Comp
-L Connector_Generic:Conn_02x02_Counter_Clockwise J4
-U 1 1 5F5307C2
-P 2150 6750
-F 0 "J4" H 2200 6967 50  0000 C CNN
-F 1 "STACK_GND" H 2200 6876 50  0000 C CNN
-F 2 "Connector_PinSocket_2.54mm:PinSocket_2x02_P2.54mm_Vertical" H 2150 6750 50  0001 C CNN
-F 3 "~" H 2150 6750 50  0001 C CNN
-	1    2150 6750
-	1    0    0    -1  
-$EndComp
-Wire Wire Line
-	1950 6750 1950 6850
-Wire Wire Line
-	1950 6950 2200 6950
-Connection ~ 1950 6850
-Wire Wire Line
-	1950 6850 1950 6950
-Wire Wire Line
-	2200 6950 2450 6950
-Wire Wire Line
-	2450 6950 2450 6850
-Connection ~ 2200 6950
-Connection ~ 2450 6850
-Wire Wire Line
-	2450 6850 2450 6750
 $Sheet
 S 750  3400 550  300 
 U 5F4CCA9E
@@ -1081,25 +1042,25 @@ Wire Wire Line
 	6800 2900 6750 2900
 Wire Wire Line
 	6800 2800 6750 2800
-Text Label 8100 950  2    50   ~ 0
+Text Label 8250 950  2    50   ~ 0
 PA4
-Text Label 8100 1050 2    50   ~ 0
+Text Label 8250 1050 2    50   ~ 0
 PA5
-Text Label 8100 1150 2    50   ~ 0
+Text Label 8250 1150 2    50   ~ 0
 PA6
-Text Label 8100 1250 2    50   ~ 0
+Text Label 8250 1250 2    50   ~ 0
 PA7
 Text Label 6800 4100 0    50   ~ 0
 PB0
 Wire Wire Line
 	6800 4100 6750 4100
-Text Label 8100 1350 2    50   ~ 0
+Text Label 8750 950  0    50   ~ 0
 PB0
 Text Label 6800 5300 0    50   ~ 0
 PB12
 Wire Wire Line
 	6800 5300 6750 5300
-Text Label 8100 1450 2    50   ~ 0
+Text Label 8750 1050 0    50   ~ 0
 PB12
 Text Label 5300 5500 2    50   ~ 0
 PC14
@@ -1109,19 +1070,50 @@ Wire Wire Line
 	5300 5500 5350 5500
 Wire Wire Line
 	5300 5600 5350 5600
-Text Label 8100 1550 2    50   ~ 0
+Text Label 8750 1150 0    50   ~ 0
 PC14
-Text Label 8100 1650 2    50   ~ 0
+Text Label 8750 1250 0    50   ~ 0
 PC15
 $Comp
-L Connector:Conn_01x08_Female J13
-U 1 1 5F5FAC84
-P 8300 1250
-F 0 "J13" H 8328 1226 50  0000 L CNN
-F 1 "GPIO" H 8328 1135 50  0000 L CNN
-F 2 "Connector_PinSocket_2.54mm:PinSocket_1x08_P2.54mm_Vertical" H 8300 1250 50  0001 C CNN
-F 3 "~" H 8300 1250 50  0001 C CNN
-	1    8300 1250
+L Connector_Generic:Conn_01x02 J4
+U 1 1 6017469B
+P 2200 6700
+F 0 "J4" H 2280 6692 50  0000 L CNN
+F 1 "STACK_GND" H 2280 6601 50  0000 L CNN
+F 2 "Connector_PinSocket_2.54mm:PinSocket_1x02_P2.54mm_Vertical" H 2200 6700 50  0001 C CNN
+F 3 "~" H 2200 6700 50  0001 C CNN
+	1    2200 6700
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	2000 6700 1950 6700
+Wire Wire Line
+	1950 6700 1950 6800
+Wire Wire Line
+	2000 6800 1950 6800
+Connection ~ 1950 6800
+Wire Wire Line
+	1950 6800 1950 6900
+$Comp
+L power:GND #PWR075
+U 1 1 601818C2
+P 1950 6900
+F 0 "#PWR075" H 1950 6650 50  0001 C CNN
+F 1 "GND" H 1955 6727 50  0000 C CNN
+F 2 "" H 1950 6900 50  0001 C CNN
+F 3 "" H 1950 6900 50  0001 C CNN
+	1    1950 6900
+	1    0    0    -1  
+$EndComp
+$Comp
+L Connector_Generic:Conn_02x04_Counter_Clockwise J13
+U 1 1 601B22D7
+P 8450 1050
+F 0 "J13" H 8500 1367 50  0000 C CNN
+F 1 "GPIO" H 8500 1276 50  0000 C CNN
+F 2 "Connector_PinHeader_2.54mm:PinHeader_2x04_P2.54mm_Vertical" H 8450 1050 50  0001 C CNN
+F 3 "~" H 8450 1050 50  0001 C CNN
+	1    8450 1050
 	1    0    0    -1  
 $EndComp
 $EndSCHEMATC
