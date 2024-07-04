@@ -6,19 +6,31 @@ name = "motherboard"
 version = "0.1.0"
 
 [dependencies]
-cortex-m = "0.7.2"
-cortex-m-semihosting = "0.3.7"
+cortex-m = { version = "0.7", features = ["critical-section-single-core"] }
+cortex-m-rt = { version = "0.7", features = ["device"] }
+defmt = "0.3"
+defmt-rtt = "0.4"
+panic-probe = { version = "0.3", features = ["print-defmt"] }
+cortex-m-semihosting = "0.5.0"
+
+# cortex-m-semihosting = "0.3.7"
 nb = "1.0.0"
 kapine-packet = { version = "0.2.2", git = "https://github.com/chiplet/kapine-packet.git" }
 
 # panic behavior
-panic-semihosting = "0.5.6"
-cortex-m-rtic = "1.1.3"
-systick-monotonic = "1.0.0"
-heapless = "0.7.3"
+# panic-semihosting = "0.5.6"
+panic-halt = "0.2.0"
+# panic-abort = "0.3.2"
+
+# cortex-m-rtic = "1.1.3"
+rtic = { version = "2.0.0", features = [ "thumbv7-backend" ] }
+rtic-time = "2.0.0"
+rtic-monotonics = { version = "2.0.0", features = [ "cortex-m-systick" ] }
+
+# heapless = "0.7.3"
 
 [dependencies.stm32f3xx-hal]
-version = "0.9.0"
+version = "0.10.0"
 features = ["rt", "stm32f303xe"]
 
 
