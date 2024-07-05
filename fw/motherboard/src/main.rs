@@ -25,6 +25,13 @@ pub enum RxState {
     Crc2,
 }
 
+use stm32f3xx_hal::gpio::gpioa;
+pub struct GpioaRegs {
+    moder: gpioa::MODER,
+    otyper: gpioa::OTYPER,
+    afrl: gpioa::AFRL,
+}
+
 systick_monotonic!(Mono, 1000);
 
 #[app(
@@ -34,15 +41,17 @@ systick_monotonic!(Mono, 1000);
         // dispatchers = [USB_HP, USB_LP, USB_WKUP_EXTI, TIM20_BRK, TIM20_UP, TIM20_TRG_COM, TIM20_CC, SPI4, I2C3_ER, I2C3_EV]
 )]
 mod app {
-    use stm32f3xx_hal::{gpio::{self, gpioa::{self, Parts}, AF5, PA5, PA6, PA7}, pac::{DMA1, GPIOA, SPI1}, rcc::{Enable, Reset}, spi::Spi};
+    use stm32f3xx_hal::{gpio::{self, gpioa::{self, Parts}, marker::Gpio, Pin, AF5, PA5, PA6, PA7, U}, pac::{DMA1, GPIOA, SPI1}, rcc::{Enable, Reset}, spi::Spi};
 
     use super::*;
     const SENSOR_LUT: [usize; 16] = [13, 9, 11, 2, 0, 12, 15, 5, 14, 4, 8, 3, 1, 7, 10, 6];
 
     #[shared]
-    struct Shared {
+    struct Shared<Mode> {
         magnets: [PXx<Output<PushPull>>; 16],
         dma1: DMA1,
+        pa7: PA7<AF5<PushPull>>,
+        gpioa_regs: GpioaRegs,
     }
 
     #[local]
@@ -50,7 +59,6 @@ mod app {
         debug_leds: [PXx<Output<PushPull>>; 2],
         local_cnt: u8,
         spi1: SPI1,
-        pa7: PA7<AF5<PushPull>>
         // spi: Spi<SPI1, (PA5<AF5<PushPull>>, PA6<AF5<PushPull>>, PA7<AF5<PushPull>>)>
     }
 
@@ -285,12 +293,13 @@ mod app {
             Shared {
                 magnets,
                 dma1,
+                pa7: spi1_mosi,
+                gpioa_regs: GpioaRegs { moder: gpio_a.moder, otyper: gpio_a.otyper, afrl: gpio_a.afrl }
             },
             Local {
                 debug_leds,
                 local_cnt: 0u8,
                 spi1,
-                pa7: spi1_mosi,
                 // spi: spi1,
             },
         )
@@ -310,7 +319,7 @@ mod app {
         }
     }
 
-    #[task(priority = 4, local = [spi1], shared = [dma1])]
+    #[task(priority = 2, local = [spi1], shared = [dma1])]
     async fn rgb_task(mut cx: rgb_task::Context) {
         const ZERO: u8 = 0b1100_0000;
         const ONE: u8 = 0b1111_1100;
@@ -321,12 +330,14 @@ mod app {
 
         let sin_lut32: [u8; 32] = [128, 152, 176, 199, 218, 234, 246, 253, 255, 253, 246, 234, 218, 199, 176, 152, 128, 103, 79, 56, 37, 21, 9, 2, 0, 2, 9, 21, 37, 56, 79, 103];
         
-        const NUM_LEDS: usize = 32;
+        // const NUM_LEDS: usize = 32;
+        const NUM_LEDS: usize = 16;
         const NUM_COLORS: usize = 3;
         const BYTES_PER_COLOR: usize = 8;
         const FRAME_BUF_SIZE: usize = (NUM_LEDS+1)*NUM_COLORS*BYTES_PER_COLOR;
         let mut frame_buf: [u8; FRAME_BUF_SIZE] = [ZERO; FRAME_BUF_SIZE];
 
+        const led_stride: usize = NUM_COLORS*BYTES_PER_COLOR;
         
         let mut cnt: usize = 0;
         
@@ -341,13 +352,15 @@ mod app {
                     frame_buf[i] = ZERO;
                 }
             }
+            frame_buf[FRAME_BUF_SIZE-1] = cnt as u8;
 
-            g = sin_lut32[cnt & 0b11111];
-
-            const led_stride: usize = NUM_COLORS*BYTES_PER_COLOR;
-    
+            
+            
             // MSB first, order GRB
-            for led in 0..32 {
+            for led in 0..NUM_LEDS {
+                g = sin_lut32[(cnt + led) & 0b11111];
+                r = sin_lut32[(cnt + led + 8) & 0b11111];
+                b = sin_lut32[(cnt + led + 24) & 0b11111];
                 if (g >> 0) & 1 == 1 { frame_buf[(led+1)*led_stride + 7-0 + 0] = ONE };
                 if (g >> 1) & 1 == 1 { frame_buf[(led+1)*led_stride + 7-1 + 0] = ONE };
                 if (g >> 2) & 1 == 1 { frame_buf[(led+1)*led_stride + 7-2 + 0] = ONE };
@@ -414,13 +427,21 @@ mod app {
         }
     }
 
-    #[task(binds = DMA1_CH3, local = [pa7], shared = [dma1])]
+    #[task(binds = DMA1_CH3, shared = [dma1, pa7, gpioa_regs])]
     fn handle_completed_dma_transfer(mut cx: handle_completed_dma_transfer::Context) {
 
         // disable dma
         cx.shared.dma1.lock(|dma1| {
-            dma1.ch3.cr.modify(|_, w| w.en().disabled());
+            if dma1.isr.read().tcif3().bit_is_set() {
+                dma1.ch3.cr.modify(|_, w| w.en().disabled());
+                dma1.ifcr.write(|w| w.ctcif3().set_bit());
+            }
         });
-        // cx.local.pa7.into_push_pull_output(&mut cx.local.gpio_a.moder, &mut cx.local.gpio_a.moder);
+
+        // let pa7 = cx.shared.pa7;
+        // let gpioa_regs = cx.shared.gpioa_regs;
+        // (pa7, gpioa_regs).lock(|pa7, gpioa_regs| {
+        //     pa7.into_push_pull_output(&mut gpioa_regs.moder, &mut gpioa_regs.otyper);
+        // });
     }
 }
