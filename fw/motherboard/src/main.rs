@@ -34,9 +34,7 @@ systick_monotonic!(Mono, 1000);
         // dispatchers = [USB_HP, USB_LP, USB_WKUP_EXTI, TIM20_BRK, TIM20_UP, TIM20_TRG_COM, TIM20_CC, SPI4, I2C3_ER, I2C3_EV]
 )]
 mod app {
-    use core::{borrow::Borrow, slice};
-
-    use stm32f3xx_hal::{gpio::{self, AF5, PA5, PA6, PA7}, pac::SPI1, rcc::{Enable, Reset}, spi::Spi};
+    use stm32f3xx_hal::{gpio::{self, gpioa::{self, Parts}, AF5, PA5, PA6, PA7}, pac::{DMA1, GPIOA, SPI1}, rcc::{Enable, Reset}, spi::Spi};
 
     use super::*;
     const SENSOR_LUT: [usize; 16] = [13, 9, 11, 2, 0, 12, 15, 5, 14, 4, 8, 3, 1, 7, 10, 6];
@@ -44,6 +42,7 @@ mod app {
     #[shared]
     struct Shared {
         magnets: [PXx<Output<PushPull>>; 16],
+        dma1: DMA1,
     }
 
     #[local]
@@ -51,6 +50,7 @@ mod app {
         debug_leds: [PXx<Output<PushPull>>; 2],
         local_cnt: u8,
         spi1: SPI1,
+        pa7: PA7<AF5<PushPull>>
         // spi: Spi<SPI1, (PA5<AF5<PushPull>>, PA6<AF5<PushPull>>, PA7<AF5<PushPull>>)>
     }
 
@@ -109,14 +109,12 @@ mod app {
         let _spi1_sck = gpio_a
             .pa5
             .into_af_push_pull::<5>(&mut gpio_a.moder, &mut gpio_a.otyper, &mut gpio_a.afrl);
-        let _spi1_miso = gpio_a
-            .pa6
-            .into_af_push_pull::<5>(&mut gpio_a.moder, &mut gpio_a.otyper, &mut gpio_a.afrl);
-        let mut _spi1_mosi = gpio_a
+        // let _spi1_miso = gpio_a
+        //     .pa6
+        //     .into_af_push_pull::<5>(&mut gpio_a.moder, &mut gpio_a.otyper, &mut gpio_a.afrl);
+        let mut spi1_mosi = gpio_a
             .pa7
             .into_af_push_pull::<5>(&mut gpio_a.moder, &mut gpio_a.otyper, &mut gpio_a.afrl);
-
-        _spi1_mosi.set_internal_resistor(&mut gpio_a.pupdr, gpio::Resistor::PullDown);
 
         // let moder = gpio_a.moder;
 
@@ -126,23 +124,26 @@ mod app {
 
         // Manual SPI1 configuration
         let spi1 = device.SPI1;
+        let dma1 = device.DMA1;
 
         SPI1::enable(&mut rcc.apb2); // enable SPI1 periperal
         SPI1::reset(&mut rcc.apb2); // reset SPI1 peripheral
 
-        let cr1: u32 = 0;
+        DMA1::enable(&mut rcc.ahb); // enable DMA controller peripheral
+        dma1.ch3.cr.write(|w| {
+            w.pl().very_high();
+            w.msize().bits16();
+            w.psize().bits16();
+            w.minc().enabled(); // enable memory increment mode
+            w.pinc().disabled(); // do not increment peripheral address
+            w.dir().from_memory();
+            w.tcie().enabled() // transfer complete interrupt enable
+        });
+        dma1.ch3.ndtr.write(|w| w.ndt().bits(24));  // 24 x u16
 
-        spi1.cr1.write(|w| w.mstr().master()); // enable master mode
-        spi1.cr1.write(|w| w.br().div16()); // set baud rate to 72M / 16 = 4.5 Ms
-        spi1.cr1.write(|w| w.lsbfirst().msbfirst()); // transmit MSB first
-        spi1.cr1.write(|w| w.ssm().enabled()); // software-defined slave select
-        spi1.cr1.write(|w| w.ssi().slave_not_selected()); // deassert chip-select
-        spi1.cr1.write(|w| w.bidimode().unidirectional());
-        spi1.cr1.write(|w| w.crcen().disabled());
-
-        
         spi1.cr2.write(|w| {
             w.ds().eight_bit(); // send 8-bit octets
+            w.txdmaen().enabled(); // raise DMA request when TXE status bit is set (TXFIFO almost empty)
             w.ssoe().disabled()
         });
         
@@ -283,11 +284,13 @@ mod app {
         (
             Shared {
                 magnets,
+                dma1,
             },
             Local {
                 debug_leds,
                 local_cnt: 0u8,
                 spi1,
+                pa7: spi1_mosi,
                 // spi: spi1,
             },
         )
@@ -307,90 +310,117 @@ mod app {
         }
     }
 
-    #[task(priority = 4, local = [spi1])]
-    async fn rgb_task(cx: rgb_task::Context) {
+    #[task(priority = 4, local = [spi1], shared = [dma1])]
+    async fn rgb_task(mut cx: rgb_task::Context) {
         const ZERO: u8 = 0b1100_0000;
         const ONE: u8 = 0b1111_1100;
 
-        let mut r = 0x80;
-        let mut g = 0u8;
-        let mut b = 255u8;
+        let mut r = 128;
+        let mut g = 0;
+        let mut b = 128;
 
-        let sin_lut: [u8; 32] = [128, 152, 176, 199, 218, 234, 246, 253, 255, 253, 246, 234, 218, 199, 176, 152, 128, 103, 79, 56, 37, 21, 9, 2, 0, 2, 9, 21, 37, 56, 79, 103];
+        let sin_lut32: [u8; 32] = [128, 152, 176, 199, 218, 234, 246, 253, 255, 253, 246, 234, 218, 199, 176, 152, 128, 103, 79, 56, 37, 21, 9, 2, 0, 2, 9, 21, 37, 56, 79, 103];
         
-        let mut cnt = 0;
+        const NUM_LEDS: usize = 32;
+        const NUM_COLORS: usize = 3;
+        const BYTES_PER_COLOR: usize = 8;
+        const FRAME_BUF_SIZE: usize = (NUM_LEDS+1)*NUM_COLORS*BYTES_PER_COLOR;
+        let mut frame_buf: [u8; FRAME_BUF_SIZE] = [ZERO; FRAME_BUF_SIZE];
+
+        
+        let mut cnt: usize = 0;
         
         loop {
-            // update colors
-            let mut rgb: [u8; 24] = [ZERO; 24];
+            
+            // clear
+            // first led is hardcoded to zeros to signal reset pulse
+            for i in 0..FRAME_BUF_SIZE {
+                if i < 24 {
+                    frame_buf[i] = 0;
+                } else {
+                    frame_buf[i] = ZERO;
+                }
+            }
 
-            g = sin_lut[cnt & 0b11111];
+            g = sin_lut32[cnt & 0b11111];
+
+            const led_stride: usize = NUM_COLORS*BYTES_PER_COLOR;
     
             // MSB first, order GRB
-            if (g >> 0) & 1 == 1 { rgb[7-0 + 0] = ONE };
-            if (g >> 1) & 1 == 1 { rgb[7-1 + 0] = ONE };
-            if (g >> 2) & 1 == 1 { rgb[7-2 + 0] = ONE };
-            if (g >> 3) & 1 == 1 { rgb[7-3 + 0] = ONE };
-            if (g >> 4) & 1 == 1 { rgb[7-4 + 0] = ONE };
-            if (g >> 5) & 1 == 1 { rgb[7-5 + 0] = ONE };
-            if (g >> 6) & 1 == 1 { rgb[7-6 + 0] = ONE };
-            if (g >> 7) & 1 == 1 { rgb[7-7 + 0] = ONE };
-            if (r >> 0) & 1 == 1 { rgb[7-0 + 8] = ONE };
-            if (r >> 1) & 1 == 1 { rgb[7-1 + 8] = ONE };
-            if (r >> 2) & 1 == 1 { rgb[7-2 + 8] = ONE };
-            if (r >> 3) & 1 == 1 { rgb[7-3 + 8] = ONE };
-            if (r >> 4) & 1 == 1 { rgb[7-4 + 8] = ONE };
-            if (r >> 5) & 1 == 1 { rgb[7-5 + 8] = ONE };
-            if (r >> 6) & 1 == 1 { rgb[7-6 + 8] = ONE };
-            if (b >> 7) & 1 == 1 { rgb[7-7 + 8] = ONE };
-            if (b >> 0) & 1 == 1 { rgb[7-0 + 16] = ONE };
-            if (b >> 1) & 1 == 1 { rgb[7-1 + 16] = ONE };
-            if (b >> 2) & 1 == 1 { rgb[7-2 + 16] = ONE };
-            if (b >> 3) & 1 == 1 { rgb[7-3 + 16] = ONE };
-            if (b >> 4) & 1 == 1 { rgb[7-4 + 16] = ONE };
-            if (b >> 5) & 1 == 1 { rgb[7-5 + 16] = ONE };
-            if (b >> 6) & 1 == 1 { rgb[7-6 + 16] = ONE };
-            if (b >> 7) & 1 == 1 { rgb[7-7 + 16] = ONE };
-    
-            // 😎
-            let rgb_u16: [u16; 12] = unsafe { core::mem::transmute(rgb) };
+            for led in 0..32 {
+                if (g >> 0) & 1 == 1 { frame_buf[(led+1)*led_stride + 7-0 + 0] = ONE };
+                if (g >> 1) & 1 == 1 { frame_buf[(led+1)*led_stride + 7-1 + 0] = ONE };
+                if (g >> 2) & 1 == 1 { frame_buf[(led+1)*led_stride + 7-2 + 0] = ONE };
+                if (g >> 3) & 1 == 1 { frame_buf[(led+1)*led_stride + 7-3 + 0] = ONE };
+                if (g >> 4) & 1 == 1 { frame_buf[(led+1)*led_stride + 7-4 + 0] = ONE };
+                if (g >> 5) & 1 == 1 { frame_buf[(led+1)*led_stride + 7-5 + 0] = ONE };
+                if (g >> 6) & 1 == 1 { frame_buf[(led+1)*led_stride + 7-6 + 0] = ONE };
+                if (g >> 7) & 1 == 1 { frame_buf[(led+1)*led_stride + 7-7 + 0] = ONE };
+                if (r >> 0) & 1 == 1 { frame_buf[(led+1)*led_stride + 7-0 + 8] = ONE };
+                if (r >> 1) & 1 == 1 { frame_buf[(led+1)*led_stride + 7-1 + 8] = ONE };
+                if (r >> 2) & 1 == 1 { frame_buf[(led+1)*led_stride + 7-2 + 8] = ONE };
+                if (r >> 3) & 1 == 1 { frame_buf[(led+1)*led_stride + 7-3 + 8] = ONE };
+                if (r >> 4) & 1 == 1 { frame_buf[(led+1)*led_stride + 7-4 + 8] = ONE };
+                if (r >> 5) & 1 == 1 { frame_buf[(led+1)*led_stride + 7-5 + 8] = ONE };
+                if (r >> 6) & 1 == 1 { frame_buf[(led+1)*led_stride + 7-6 + 8] = ONE };
+                if (b >> 7) & 1 == 1 { frame_buf[(led+1)*led_stride + 7-7 + 8] = ONE };
+                if (b >> 0) & 1 == 1 { frame_buf[(led+1)*led_stride + 7-0 + 16] = ONE };
+                if (b >> 1) & 1 == 1 { frame_buf[(led+1)*led_stride + 7-1 + 16] = ONE };
+                if (b >> 2) & 1 == 1 { frame_buf[(led+1)*led_stride + 7-2 + 16] = ONE };
+                if (b >> 3) & 1 == 1 { frame_buf[(led+1)*led_stride + 7-3 + 16] = ONE };
+                if (b >> 4) & 1 == 1 { frame_buf[(led+1)*led_stride + 7-4 + 16] = ONE };
+                if (b >> 5) & 1 == 1 { frame_buf[(led+1)*led_stride + 7-5 + 16] = ONE };
+                if (b >> 6) & 1 == 1 { frame_buf[(led+1)*led_stride + 7-6 + 16] = ONE };
+                if (b >> 7) & 1 == 1 { frame_buf[(led+1)*led_stride + 7-7 + 16] = ONE };
+            }
 
             // SPI transfer
             if cx.local.spi1.sr.read().txe().bit_is_set() {
-                // reset
-                cx.local.spi1.dr.write(|w| w.dr().bits(0u16));
-                // NOTE: Using a loop here to index rgb_u16 results in SPI transfers with
-                // gaps between bytes. It's better to unroll the whole loop.
-                // G
-                cx.local.spi1.dr.write(|w| w.dr().bits(rgb_u16[0]));
-                cx.local.spi1.dr.write(|w| w.dr().bits(rgb_u16[1]));
-                cx.local.spi1.dr.write(|w| w.dr().bits(rgb_u16[2]));
-                cx.local.spi1.dr.write(|w| w.dr().bits(rgb_u16[3]));
-                // R
-                cx.local.spi1.dr.write(|w| w.dr().bits(rgb_u16[4]));
-                cx.local.spi1.dr.write(|w| w.dr().bits(rgb_u16[5]));
-                cx.local.spi1.dr.write(|w| w.dr().bits(rgb_u16[6]));
-                cx.local.spi1.dr.write(|w| w.dr().bits(rgb_u16[7]));
-                // B
-                cx.local.spi1.dr.write(|w| w.dr().bits(rgb_u16[8]));
-                cx.local.spi1.dr.write(|w| w.dr().bits(rgb_u16[9]));
-                cx.local.spi1.dr.write(|w| w.dr().bits(rgb_u16[10]));
-                cx.local.spi1.dr.write(|w| w.dr().bits(rgb_u16[11]));
-            }
 
+                // // DMA transfer for single LED
+                // let mem_ptr = core::ptr::addr_of!(rgb_u16);
+                // defmt::debug!("mem_ptr = 0x{:08x}", mem_ptr);           
+                // // TODO: Can this be done without unsafe?
+                // // Set DMA transfer addresses
+                // unsafe {
+                //     cx.local.dma1.ch3.mar.write(|w| w.ma().bits(mem_ptr as u32));
+                //     cx.local.dma1.ch3.par.write(|w| w.bits(core::ptr::addr_of!(cx.local.spi1.dr) as u32))
+                // }
+                // cx.local.dma1.ch3.ndtr.write(|w| w.ndt().bits(FRAME));  // 24 x u16
+
+                // DMA transfer for whole frame buf
+                let spi1_dr_addr = core::ptr::addr_of!(cx.local.spi1.dr);
+                cx.shared.dma1.lock(|dma1| {
+                    dma1.ifcr.write(|w| w.ctcif3().set_bit());
+                    let mem_ptr = core::ptr::addr_of!(frame_buf);
+                    // defmt::debug!("mem_ptr = 0x{:08x}", mem_ptr);             
+                    // TODO: Can this be done without unsafe?
+                    // Set DMA transfer addresses
+                    unsafe {
+                        dma1.ch3.mar.write(|w| w.ma().bits(mem_ptr as u32));
+                        dma1.ch3.par.write(|w| w.bits(spi1_dr_addr as u32));
+                    }
+                    dma1.ch3.ndtr.write(|w| w.ndt().bits((FRAME_BUF_SIZE/2) as u16));
+    
+                    // start DMA transfer
+                    dma1.ch3.cr.modify(|_, w| w.en().enabled());
+                });
+            }
             // let status = cx.local.spi1.sr.read().bits();
             // defmt::trace!("spi status: 0x{:08x}", status);
 
-        // for i in 0..8 {
-            //     rgb[i + 0] = if (r >> i) & 1 == 1 { ONE } else { ZERO };
-            //     rgb[i + 8] = if (g >> i) & 1 == 1 { ONE } else { ZERO };
-            //     rgb[i + 16] = if (b >> i) & 1 == 1 { ONE } else { ZERO };
-            //     // defmt::trace!("r[{}] = {}", i, rgb[i]);
-            // }
-            // let mut msg_sending = rgb;
-            // let _msg_received = cx.local.spi.transfer(&mut msg_sending).unwrap();
             cnt = cnt.overflowing_add(1).0;
-            Mono::delay(10.millis()).await;
+            Mono::delay(16.millis()).await;
         }
+    }
+
+    #[task(binds = DMA1_CH3, local = [pa7], shared = [dma1])]
+    fn handle_completed_dma_transfer(mut cx: handle_completed_dma_transfer::Context) {
+
+        // disable dma
+        cx.shared.dma1.lock(|dma1| {
+            dma1.ch3.cr.modify(|_, w| w.en().disabled());
+        });
+        // cx.local.pa7.into_push_pull_output(&mut cx.local.gpio_a.moder, &mut cx.local.gpio_a.moder);
     }
 }
