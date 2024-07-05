@@ -1,4 +1,4 @@
-#![deny(unsafe_code)]
+// #![deny(unsafe_code)]
 #![no_main]
 #![no_std]
 
@@ -34,9 +34,9 @@ systick_monotonic!(Mono, 1000);
         // dispatchers = [USB_HP, USB_LP, USB_WKUP_EXTI, TIM20_BRK, TIM20_UP, TIM20_TRG_COM, TIM20_CC, SPI4, I2C3_ER, I2C3_EV]
 )]
 mod app {
-    use core::slice;
+    use core::{borrow::Borrow, slice};
 
-    use stm32f3xx_hal::{gpio::{AF5, PA5, PA6, PA7}, pac::SPI1, spi::Spi};
+    use stm32f3xx_hal::{gpio::{self, AF5, PA5, PA6, PA7}, pac::SPI1, rcc::{Enable, Reset}, spi::Spi};
 
     use super::*;
     const SENSOR_LUT: [usize; 16] = [13, 9, 11, 2, 0, 12, 15, 5, 14, 4, 8, 3, 1, 7, 10, 6];
@@ -50,7 +50,8 @@ mod app {
     struct Local {
         debug_leds: [PXx<Output<PushPull>>; 2],
         local_cnt: u8,
-        spi: Spi<SPI1, (PA5<AF5<PushPull>>, PA6<AF5<PushPull>>, PA7<AF5<PushPull>>)>
+        spi1: SPI1,
+        // spi: Spi<SPI1, (PA5<AF5<PushPull>>, PA6<AF5<PushPull>>, PA7<AF5<PushPull>>)>
     }
 
     #[init]
@@ -62,6 +63,7 @@ mod app {
 
         let mut flash = device.FLASH.constrain();
         let mut rcc = device.RCC.constrain();
+
         let mut exti = device.EXTI;
         let mut syscfg = device.SYSCFG.constrain(&mut rcc.apb2);
 
@@ -74,6 +76,7 @@ mod app {
             .pclk1(36.MHz())
             .pclk2(72.MHz())
             .freeze(&mut flash.acr);
+
 
         // Initialize (enable) the monotonic timer (CYCCNT)
         // core.DCB.enable_trace();
@@ -103,17 +106,66 @@ mod app {
         // use SPI1 peripheral to drive WS2812B RGB leds
         // let rgb_pin = gpio_a.pa7.into_af_push_pull(&mut gpio_a.moder, &mut gpio_a.otyper, &mut gpio_a.afrh);
 
-        let spi1_sck = gpio_a
+        let _spi1_sck = gpio_a
             .pa5
-            .into_af_push_pull(&mut gpio_a.moder, &mut gpio_a.otyper, &mut gpio_a.afrl);
-        let spi1_miso = gpio_a
+            .into_af_push_pull::<5>(&mut gpio_a.moder, &mut gpio_a.otyper, &mut gpio_a.afrl);
+        let _spi1_miso = gpio_a
             .pa6
-            .into_af_push_pull(&mut gpio_a.moder, &mut gpio_a.otyper, &mut gpio_a.afrl);
-        let spi1_mosi = gpio_a
+            .into_af_push_pull::<5>(&mut gpio_a.moder, &mut gpio_a.otyper, &mut gpio_a.afrl);
+        let mut _spi1_mosi = gpio_a
             .pa7
-            .into_af_push_pull(&mut gpio_a.moder, &mut gpio_a.otyper, &mut gpio_a.afrl);
+            .into_af_push_pull::<5>(&mut gpio_a.moder, &mut gpio_a.otyper, &mut gpio_a.afrl);
 
-        let mut spi1 = Spi::new(device.SPI1, (spi1_sck, spi1_miso, spi1_mosi), 5.MHz(), clocks, &mut rcc.apb2);
+        _spi1_mosi.set_internal_resistor(&mut gpio_a.pupdr, gpio::Resistor::PullDown);
+
+        // let moder = gpio_a.moder;
+
+
+        // are these optimized away?
+        // defmt::debug!("{}", spi1_mosi.);
+
+        // Manual SPI1 configuration
+        let spi1 = device.SPI1;
+
+        SPI1::enable(&mut rcc.apb2); // enable SPI1 periperal
+        SPI1::reset(&mut rcc.apb2); // reset SPI1 peripheral
+
+        let cr1: u32 = 0;
+
+        spi1.cr1.write(|w| w.mstr().master()); // enable master mode
+        spi1.cr1.write(|w| w.br().div16()); // set baud rate to 72M / 16 = 4.5 Ms
+        spi1.cr1.write(|w| w.lsbfirst().msbfirst()); // transmit MSB first
+        spi1.cr1.write(|w| w.ssm().enabled()); // software-defined slave select
+        spi1.cr1.write(|w| w.ssi().slave_not_selected()); // deassert chip-select
+        spi1.cr1.write(|w| w.bidimode().unidirectional());
+        spi1.cr1.write(|w| w.crcen().disabled());
+
+        
+        spi1.cr2.write(|w| {
+            w.ds().eight_bit(); // send 8-bit octets
+            w.ssoe().disabled()
+        });
+        
+        spi1.cr1.write(|w| {
+            w.mstr().master(); // enable master mode
+            w.br().div16(); // set baud rate to 72M / 16 = 4.5 Ms
+            w.lsbfirst().msbfirst(); // transmit MSB first
+            w.ssm().enabled(); // software-defined slave select
+            w.ssi().slave_not_selected(); // deassert chip-select
+            w.bidimode().unidirectional();
+            w.crcen().disabled();
+            w.spe().enabled() // enable SPI peripheral
+        });
+        
+        defmt::debug!("SPI1_CR1 = 0x{:08x}", spi1.cr1.read().bits());
+        defmt::debug!("SPI1_CR2 = 0x{:08x}", spi1.cr2.read().bits());
+
+        // spi1.dr.write(|w| w.dr().bits(0x1234));
+
+        let spi_status = spi1.sr.read().bits();
+        defmt::info!("spi status: 0x{:08x}", spi_status);
+
+        // let mut spi1 = Spi::new(device.SPI1, (spi1_sck, spi1_miso, spi1_mosi), 5.MHz(), clocks, &mut rcc.apb2);
 
 
         // debug LEDs
@@ -235,7 +287,8 @@ mod app {
             Local {
                 debug_leds,
                 local_cnt: 0u8,
-                spi: spi1,
+                spi1,
+                // spi: spi1,
             },
         )
     }
@@ -254,26 +307,90 @@ mod app {
         }
     }
 
-    #[task(priority = 4, local = [spi])]
+    #[task(priority = 4, local = [spi1])]
     async fn rgb_task(cx: rgb_task::Context) {
-        const ZERO: u8 = 0b0100_0000;
-        const ONE: u8 = 0b0111_1110;
+        const ZERO: u8 = 0b1100_0000;
+        const ONE: u8 = 0b1111_1100;
 
-        let r = 128u8;
-        let g = 0u8;
-        let b = 255u8;
-        let mut rgb: [u8; 24] = [ZERO; 24];
+        let mut r = 0x80;
+        let mut g = 0u8;
+        let mut b = 255u8;
 
+        let sin_lut: [u8; 32] = [128, 152, 176, 199, 218, 234, 246, 253, 255, 253, 246, 234, 218, 199, 176, 152, 128, 103, 79, 56, 37, 21, 9, 2, 0, 2, 9, 21, 37, 56, 79, 103];
+        
+        let mut cnt = 0;
+        
         loop {
-            for i in 0..8 {
-                rgb[i + 0] = if (r >> i) & 1 == 1 { ONE } else { ZERO };
-                rgb[i + 8] = if (g >> i) & 1 == 1 { ONE } else { ZERO };
-                rgb[i + 16] = if (b >> i) & 1 == 1 { ONE } else { ZERO };
-                // defmt::trace!("r[{}] = {}", i, rgb[i]);
+            // update colors
+            let mut rgb: [u8; 24] = [ZERO; 24];
+
+            g = sin_lut[cnt & 0b11111];
+    
+            // MSB first, order GRB
+            if (g >> 0) & 1 == 1 { rgb[7-0 + 0] = ONE };
+            if (g >> 1) & 1 == 1 { rgb[7-1 + 0] = ONE };
+            if (g >> 2) & 1 == 1 { rgb[7-2 + 0] = ONE };
+            if (g >> 3) & 1 == 1 { rgb[7-3 + 0] = ONE };
+            if (g >> 4) & 1 == 1 { rgb[7-4 + 0] = ONE };
+            if (g >> 5) & 1 == 1 { rgb[7-5 + 0] = ONE };
+            if (g >> 6) & 1 == 1 { rgb[7-6 + 0] = ONE };
+            if (g >> 7) & 1 == 1 { rgb[7-7 + 0] = ONE };
+            if (r >> 0) & 1 == 1 { rgb[7-0 + 8] = ONE };
+            if (r >> 1) & 1 == 1 { rgb[7-1 + 8] = ONE };
+            if (r >> 2) & 1 == 1 { rgb[7-2 + 8] = ONE };
+            if (r >> 3) & 1 == 1 { rgb[7-3 + 8] = ONE };
+            if (r >> 4) & 1 == 1 { rgb[7-4 + 8] = ONE };
+            if (r >> 5) & 1 == 1 { rgb[7-5 + 8] = ONE };
+            if (r >> 6) & 1 == 1 { rgb[7-6 + 8] = ONE };
+            if (b >> 7) & 1 == 1 { rgb[7-7 + 8] = ONE };
+            if (b >> 0) & 1 == 1 { rgb[7-0 + 16] = ONE };
+            if (b >> 1) & 1 == 1 { rgb[7-1 + 16] = ONE };
+            if (b >> 2) & 1 == 1 { rgb[7-2 + 16] = ONE };
+            if (b >> 3) & 1 == 1 { rgb[7-3 + 16] = ONE };
+            if (b >> 4) & 1 == 1 { rgb[7-4 + 16] = ONE };
+            if (b >> 5) & 1 == 1 { rgb[7-5 + 16] = ONE };
+            if (b >> 6) & 1 == 1 { rgb[7-6 + 16] = ONE };
+            if (b >> 7) & 1 == 1 { rgb[7-7 + 16] = ONE };
+    
+            // 😎
+            let rgb_u16: [u16; 12] = unsafe { core::mem::transmute(rgb) };
+
+            // SPI transfer
+            if cx.local.spi1.sr.read().txe().bit_is_set() {
+                // reset
+                cx.local.spi1.dr.write(|w| w.dr().bits(0u16));
+                // NOTE: Using a loop here to index rgb_u16 results in SPI transfers with
+                // gaps between bytes. It's better to unroll the whole loop.
+                // G
+                cx.local.spi1.dr.write(|w| w.dr().bits(rgb_u16[0]));
+                cx.local.spi1.dr.write(|w| w.dr().bits(rgb_u16[1]));
+                cx.local.spi1.dr.write(|w| w.dr().bits(rgb_u16[2]));
+                cx.local.spi1.dr.write(|w| w.dr().bits(rgb_u16[3]));
+                // R
+                cx.local.spi1.dr.write(|w| w.dr().bits(rgb_u16[4]));
+                cx.local.spi1.dr.write(|w| w.dr().bits(rgb_u16[5]));
+                cx.local.spi1.dr.write(|w| w.dr().bits(rgb_u16[6]));
+                cx.local.spi1.dr.write(|w| w.dr().bits(rgb_u16[7]));
+                // B
+                cx.local.spi1.dr.write(|w| w.dr().bits(rgb_u16[8]));
+                cx.local.spi1.dr.write(|w| w.dr().bits(rgb_u16[9]));
+                cx.local.spi1.dr.write(|w| w.dr().bits(rgb_u16[10]));
+                cx.local.spi1.dr.write(|w| w.dr().bits(rgb_u16[11]));
             }
-            let mut msg_sending = rgb;
-            let _msg_received = cx.local.spi.transfer(&mut msg_sending).unwrap();
-            Mono::delay(1.millis()).await;
+
+            // let status = cx.local.spi1.sr.read().bits();
+            // defmt::trace!("spi status: 0x{:08x}", status);
+
+        // for i in 0..8 {
+            //     rgb[i + 0] = if (r >> i) & 1 == 1 { ONE } else { ZERO };
+            //     rgb[i + 8] = if (g >> i) & 1 == 1 { ONE } else { ZERO };
+            //     rgb[i + 16] = if (b >> i) & 1 == 1 { ONE } else { ZERO };
+            //     // defmt::trace!("r[{}] = {}", i, rgb[i]);
+            // }
+            // let mut msg_sending = rgb;
+            // let _msg_received = cx.local.spi.transfer(&mut msg_sending).unwrap();
+            cnt = cnt.overflowing_add(1).0;
+            Mono::delay(10.millis()).await;
         }
     }
 }
