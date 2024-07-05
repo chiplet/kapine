@@ -50,8 +50,6 @@ mod app {
     struct Shared<Mode> {
         magnets: [PXx<Output<PushPull>>; 16],
         dma1: DMA1,
-        pa7: PA7<AF5<PushPull>>,
-        gpioa_regs: GpioaRegs,
     }
 
     #[local]
@@ -112,23 +110,9 @@ mod app {
         // );
 
         // use SPI1 peripheral to drive WS2812B RGB leds
-        // let rgb_pin = gpio_a.pa7.into_af_push_pull(&mut gpio_a.moder, &mut gpio_a.otyper, &mut gpio_a.afrh);
-
-        let _spi1_sck = gpio_a
-            .pa5
-            .into_af_push_pull::<5>(&mut gpio_a.moder, &mut gpio_a.otyper, &mut gpio_a.afrl);
-        // let _spi1_miso = gpio_a
-        //     .pa6
-        //     .into_af_push_pull::<5>(&mut gpio_a.moder, &mut gpio_a.otyper, &mut gpio_a.afrl);
-        let mut spi1_mosi = gpio_a
+        let spi1_mosi = gpio_a
             .pa7
             .into_af_push_pull::<5>(&mut gpio_a.moder, &mut gpio_a.otyper, &mut gpio_a.afrl);
-
-        // let moder = gpio_a.moder;
-
-
-        // are these optimized away?
-        // defmt::debug!("{}", spi1_mosi.);
 
         // Manual SPI1 configuration
         let spi1 = device.SPI1;
@@ -293,8 +277,6 @@ mod app {
             Shared {
                 magnets,
                 dma1,
-                pa7: spi1_mosi,
-                gpioa_regs: GpioaRegs { moder: gpio_a.moder, otyper: gpio_a.otyper, afrl: gpio_a.afrl }
             },
             Local {
                 debug_leds,
@@ -324,20 +306,17 @@ mod app {
         const ZERO: u8 = 0b1100_0000;
         const ONE: u8 = 0b1111_1100;
 
-        let mut r = 128;
-        let mut g = 0;
-        let mut b = 128;
-
-        let sin_lut32: [u8; 32] = [128, 152, 176, 199, 218, 234, 246, 253, 255, 253, 246, 234, 218, 199, 176, 152, 128, 103, 79, 56, 37, 21, 9, 2, 0, 2, 9, 21, 37, 56, 79, 103];
+        let _sin_lut32: [u8; 32] = [128, 152, 176, 199, 218, 234, 246, 253, 255, 253, 246, 234, 218, 199, 176, 152, 128, 103, 79, 56, 37, 21, 9, 2, 0, 2, 9, 21, 37, 56, 79, 103];
+        let sin_lut64: [u8; 64] = [128, 140, 152, 165, 176, 188, 198, 208, 218, 226, 234, 240, 245, 250, 253, 254, 255, 254, 253, 250, 245, 240, 234, 226, 218, 208, 198, 188, 176, 165, 152, 140, 128, 115, 103, 90, 79, 67, 57, 47, 37, 29, 21, 15, 10, 5, 2, 1, 0, 1, 2, 5, 10, 15, 21, 29, 37, 47, 57, 67, 79, 90, 103, 115];
+        let _sin_lut128: [u8; 128] = [128, 134, 140, 146, 152, 158, 165, 170, 176, 182, 188, 193, 198, 203, 208, 213, 218, 222, 226, 230, 234, 237, 240, 243, 245, 248, 250, 251, 253, 254, 254, 255, 255, 255, 254, 254, 253, 251, 250, 248, 245, 243, 240, 237, 234, 230, 226, 222, 218, 213, 208, 203, 198, 193, 188, 182, 176, 170, 165, 158, 152, 146, 140, 134, 128, 121, 115, 109, 103, 97, 90, 85, 79, 73, 67, 62, 57, 52, 47, 42, 37, 33, 29, 25, 21, 18, 15, 12, 10, 7, 5, 4, 2, 1, 1, 0, 0, 0, 1, 1, 2, 4, 5, 7, 10, 12, 15, 18, 21, 25, 29, 33, 37, 42, 47, 52, 57, 62, 67, 73, 79, 85, 90, 97, 103, 109, 115, 121];
         
-        // const NUM_LEDS: usize = 32;
-        const NUM_LEDS: usize = 16;
+        const NUM_LEDS: usize = 32;
         const NUM_COLORS: usize = 3;
         const BYTES_PER_COLOR: usize = 8;
         const FRAME_BUF_SIZE: usize = (NUM_LEDS+1)*NUM_COLORS*BYTES_PER_COLOR;
         let mut frame_buf: [u8; FRAME_BUF_SIZE] = [ZERO; FRAME_BUF_SIZE];
 
-        const led_stride: usize = NUM_COLORS*BYTES_PER_COLOR;
+        const LED_STRIDE: usize = NUM_COLORS*BYTES_PER_COLOR;
         
         let mut cnt: usize = 0;
         
@@ -352,54 +331,40 @@ mod app {
                     frame_buf[i] = ZERO;
                 }
             }
-            frame_buf[FRAME_BUF_SIZE-1] = cnt as u8;
-
-            
             
             // MSB first, order GRB
             for led in 0..NUM_LEDS {
-                g = sin_lut32[(cnt + led) & 0b11111];
-                r = sin_lut32[(cnt + led + 8) & 0b11111];
-                b = sin_lut32[(cnt + led + 24) & 0b11111];
-                if (g >> 0) & 1 == 1 { frame_buf[(led+1)*led_stride + 7-0 + 0] = ONE };
-                if (g >> 1) & 1 == 1 { frame_buf[(led+1)*led_stride + 7-1 + 0] = ONE };
-                if (g >> 2) & 1 == 1 { frame_buf[(led+1)*led_stride + 7-2 + 0] = ONE };
-                if (g >> 3) & 1 == 1 { frame_buf[(led+1)*led_stride + 7-3 + 0] = ONE };
-                if (g >> 4) & 1 == 1 { frame_buf[(led+1)*led_stride + 7-4 + 0] = ONE };
-                if (g >> 5) & 1 == 1 { frame_buf[(led+1)*led_stride + 7-5 + 0] = ONE };
-                if (g >> 6) & 1 == 1 { frame_buf[(led+1)*led_stride + 7-6 + 0] = ONE };
-                if (g >> 7) & 1 == 1 { frame_buf[(led+1)*led_stride + 7-7 + 0] = ONE };
-                if (r >> 0) & 1 == 1 { frame_buf[(led+1)*led_stride + 7-0 + 8] = ONE };
-                if (r >> 1) & 1 == 1 { frame_buf[(led+1)*led_stride + 7-1 + 8] = ONE };
-                if (r >> 2) & 1 == 1 { frame_buf[(led+1)*led_stride + 7-2 + 8] = ONE };
-                if (r >> 3) & 1 == 1 { frame_buf[(led+1)*led_stride + 7-3 + 8] = ONE };
-                if (r >> 4) & 1 == 1 { frame_buf[(led+1)*led_stride + 7-4 + 8] = ONE };
-                if (r >> 5) & 1 == 1 { frame_buf[(led+1)*led_stride + 7-5 + 8] = ONE };
-                if (r >> 6) & 1 == 1 { frame_buf[(led+1)*led_stride + 7-6 + 8] = ONE };
-                if (b >> 7) & 1 == 1 { frame_buf[(led+1)*led_stride + 7-7 + 8] = ONE };
-                if (b >> 0) & 1 == 1 { frame_buf[(led+1)*led_stride + 7-0 + 16] = ONE };
-                if (b >> 1) & 1 == 1 { frame_buf[(led+1)*led_stride + 7-1 + 16] = ONE };
-                if (b >> 2) & 1 == 1 { frame_buf[(led+1)*led_stride + 7-2 + 16] = ONE };
-                if (b >> 3) & 1 == 1 { frame_buf[(led+1)*led_stride + 7-3 + 16] = ONE };
-                if (b >> 4) & 1 == 1 { frame_buf[(led+1)*led_stride + 7-4 + 16] = ONE };
-                if (b >> 5) & 1 == 1 { frame_buf[(led+1)*led_stride + 7-5 + 16] = ONE };
-                if (b >> 6) & 1 == 1 { frame_buf[(led+1)*led_stride + 7-6 + 16] = ONE };
-                if (b >> 7) & 1 == 1 { frame_buf[(led+1)*led_stride + 7-7 + 16] = ONE };
+                let g = sin_lut64[(cnt + led) & 0b111111];
+                let r = sin_lut64[(cnt + led + 8) & 0b111111];
+                let b = sin_lut64[(cnt + led + 24) & 0b111111];
+                if (g >> 0) & 1 == 1 { frame_buf[(led+1)*LED_STRIDE + 7-0 + 0] = ONE };
+                if (g >> 1) & 1 == 1 { frame_buf[(led+1)*LED_STRIDE + 7-1 + 0] = ONE };
+                if (g >> 2) & 1 == 1 { frame_buf[(led+1)*LED_STRIDE + 7-2 + 0] = ONE };
+                if (g >> 3) & 1 == 1 { frame_buf[(led+1)*LED_STRIDE + 7-3 + 0] = ONE };
+                if (g >> 4) & 1 == 1 { frame_buf[(led+1)*LED_STRIDE + 7-4 + 0] = ONE };
+                if (g >> 5) & 1 == 1 { frame_buf[(led+1)*LED_STRIDE + 7-5 + 0] = ONE };
+                if (g >> 6) & 1 == 1 { frame_buf[(led+1)*LED_STRIDE + 7-6 + 0] = ONE };
+                if (g >> 7) & 1 == 1 { frame_buf[(led+1)*LED_STRIDE + 7-7 + 0] = ONE };
+                if (r >> 0) & 1 == 1 { frame_buf[(led+1)*LED_STRIDE + 7-0 + 8] = ONE };
+                if (r >> 1) & 1 == 1 { frame_buf[(led+1)*LED_STRIDE + 7-1 + 8] = ONE };
+                if (r >> 2) & 1 == 1 { frame_buf[(led+1)*LED_STRIDE + 7-2 + 8] = ONE };
+                if (r >> 3) & 1 == 1 { frame_buf[(led+1)*LED_STRIDE + 7-3 + 8] = ONE };
+                if (r >> 4) & 1 == 1 { frame_buf[(led+1)*LED_STRIDE + 7-4 + 8] = ONE };
+                if (r >> 5) & 1 == 1 { frame_buf[(led+1)*LED_STRIDE + 7-5 + 8] = ONE };
+                if (r >> 6) & 1 == 1 { frame_buf[(led+1)*LED_STRIDE + 7-6 + 8] = ONE };
+                if (b >> 7) & 1 == 1 { frame_buf[(led+1)*LED_STRIDE + 7-7 + 8] = ONE };
+                if (b >> 0) & 1 == 1 { frame_buf[(led+1)*LED_STRIDE + 7-0 + 16] = ONE };
+                if (b >> 1) & 1 == 1 { frame_buf[(led+1)*LED_STRIDE + 7-1 + 16] = ONE };
+                if (b >> 2) & 1 == 1 { frame_buf[(led+1)*LED_STRIDE + 7-2 + 16] = ONE };
+                if (b >> 3) & 1 == 1 { frame_buf[(led+1)*LED_STRIDE + 7-3 + 16] = ONE };
+                if (b >> 4) & 1 == 1 { frame_buf[(led+1)*LED_STRIDE + 7-4 + 16] = ONE };
+                if (b >> 5) & 1 == 1 { frame_buf[(led+1)*LED_STRIDE + 7-5 + 16] = ONE };
+                if (b >> 6) & 1 == 1 { frame_buf[(led+1)*LED_STRIDE + 7-6 + 16] = ONE };
+                if (b >> 7) & 1 == 1 { frame_buf[(led+1)*LED_STRIDE + 7-7 + 16] = ONE };
             }
 
             // SPI transfer
             if cx.local.spi1.sr.read().txe().bit_is_set() {
-
-                // // DMA transfer for single LED
-                // let mem_ptr = core::ptr::addr_of!(rgb_u16);
-                // defmt::debug!("mem_ptr = 0x{:08x}", mem_ptr);           
-                // // TODO: Can this be done without unsafe?
-                // // Set DMA transfer addresses
-                // unsafe {
-                //     cx.local.dma1.ch3.mar.write(|w| w.ma().bits(mem_ptr as u32));
-                //     cx.local.dma1.ch3.par.write(|w| w.bits(core::ptr::addr_of!(cx.local.spi1.dr) as u32))
-                // }
-                // cx.local.dma1.ch3.ndtr.write(|w| w.ndt().bits(FRAME));  // 24 x u16
 
                 // DMA transfer for whole frame buf
                 let spi1_dr_addr = core::ptr::addr_of!(cx.local.spi1.dr);
@@ -423,25 +388,19 @@ mod app {
             // defmt::trace!("spi status: 0x{:08x}", status);
 
             cnt = cnt.overflowing_add(1).0;
-            Mono::delay(16.millis()).await;
+            Mono::delay(10.millis()).await;
         }
     }
 
-    #[task(binds = DMA1_CH3, shared = [dma1, pa7, gpioa_regs])]
+    #[task(binds = DMA1_CH3, shared = [dma1])]
     fn handle_completed_dma_transfer(mut cx: handle_completed_dma_transfer::Context) {
 
-        // disable dma
+        // disable DMA after completed transfer
         cx.shared.dma1.lock(|dma1| {
             if dma1.isr.read().tcif3().bit_is_set() {
                 dma1.ch3.cr.modify(|_, w| w.en().disabled());
                 dma1.ifcr.write(|w| w.ctcif3().set_bit());
             }
         });
-
-        // let pa7 = cx.shared.pa7;
-        // let gpioa_regs = cx.shared.gpioa_regs;
-        // (pa7, gpioa_regs).lock(|pa7, gpioa_regs| {
-        //     pa7.into_push_pull_output(&mut gpioa_regs.moder, &mut gpioa_regs.otyper);
-        // });
     }
 }
